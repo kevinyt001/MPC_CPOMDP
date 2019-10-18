@@ -1,14 +1,14 @@
-#ifndef AI_TOOLBOX_UTILS_CORE_HEADER_FILE
-#define AI_TOOLBOX_UTILS_CORE_HEADER_FILE
+#ifndef MPC_POMDP_CORE_HEADER_FILE
+#define MPC_POMDP_CORE_HEADER_FILE
 
 #include <cmath>
 #include <limits>
 
-#include <AIToolbox/Types.hpp>
+#include <Types.hpp>
 
 #include <boost/functional/hash.hpp>
 
-namespace AIToolbox {
+namespace MPC_POMDP {
     /// This is the max absolute difference for which two values can be considered equal.
     constexpr auto equalToleranceSmall = 0.000001;
     /// This is a relative term used in the checkEqualGeneral functions, where
