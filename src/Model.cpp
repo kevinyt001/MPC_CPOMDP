@@ -157,4 +157,11 @@ namespace MPC_POMDP{
 
     const Matrix2D & Model::getTransitionFunction(const size_t a) const { return transitions_[a]; }
     const Matrix2D & Model::getObservationFunction(const size_t a) const { return observations_[a]; }
+
+    std::tuple<size_t,size_t, double> Model::propagateSOR(const size_t s, const size_t a) const {
+        const size_t s1 = sampleProbability(S, transitions_[a].row(s), rand_);
+        const double r = rewards_(s, a);
+        const auto o = sampleProbability(O, observations_[a].row(s1), rand_);
+        return std::make_tuple(s1, o, r);
+    }
 }
