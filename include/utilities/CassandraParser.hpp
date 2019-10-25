@@ -172,6 +172,15 @@ namespace MPC_POMDP {
              */
             void processReward();
 
+            /**
+             * @brief This function processes a termination function 
+             * or a violation function entry.
+             *
+             * The input just need to specify it is termianation or violation
+             * and then add state, i.e. E: state or V: state
+             */
+            void processTerVio(std::vector<bool>& M);
+
             // Storage for lines which are not empty and not used in the preamble.
             std::vector<std::string> lines_;
             size_t i_;
@@ -182,6 +191,7 @@ namespace MPC_POMDP {
 
             // Storage for input matrices.
             DumbMatrix3D T, R, W;
+            std::vector<bool> TER, VIO;
 
             // These are actions to perform for the preamble.
             ActionMap initMap_;

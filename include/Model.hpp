@@ -1,7 +1,8 @@
 #ifndef MPC_POMDP_MODEL_HEADER_FILE
 #define MPC_POMDP_MODEL_HEADER_FILE
 
-
+#include <random>
+#include <vector>
 
 namespace MPC_POMDP {
 	class Model {
@@ -68,17 +69,21 @@ namespace MPC_POMDP {
              * @tparam T  The external transition container type.
              * @tparam R  The external rewards container type.
              * @tparam OM The external observation container type.
+             * @tparam TER The external termination container type.
+             * @tparam VIO The external violation container type.
              * @param s  The number of states of the world.
              * @param a  The number of actions available to the agent.
              * @param o  The number of observations available to the agent.
              * @param t  The external transitions container.
              * @param r  The external rewards container.
              * @param om The external observations container.
+             * @param ter The external terminations container.
+             * @param vio The external violations container.
              * @param d  The discount factor for the POMDP.
              */
-            template <typename T, typename R, typename OM>
+            template <typename T, typename R, typename OM, typename TER, typename VIO>
             Model(size_t s, size_t a, size_t o, const T & t, const R & r, 
-            	const OM & om, double d = 1.0);
+            	const OM & om, const TER & ter, const VIO & vio, double d = 1.0);
 
             /**
              * @brief Unchecked constructor.
@@ -207,9 +212,33 @@ namespace MPC_POMDP {
              * This function does DOES NOT perform any size checks on the
              * input.
              *
-             * @param r The external rewards container.
+             * @param om The external observation container.
              */
             void setObservationFunction(const ObservationMatrix & om);
+
+            /**
+             * @brief This function replaces the Model termination function with the one provided.
+             *
+             * The dimensions of the container must match the ones provided
+             * as arguments (for one dimensions: S). BE CAREFUL.
+             *
+             * This function does will throw an invalid argument if the size is not correct.
+             *
+             * @param ter The external termination container.
+             */
+            void setTerminationFunction(const std::vector<bool> & ter);
+
+            /**
+             * @brief This function replaces the Model violation function with the one provided.
+             *
+             * The dimensions of the container must match the ones provided
+             * as arguments (for one dimensions: S). BE CAREFUL.
+             *
+             * This function does will throw an invalid argument if the size is not correct.
+             *
+             * @param vio The external violation container.
+             */
+            void setTerminationFunction(const std::vector<bool> & vio);
 
             /**
              * @brief This function sets a new discount factor for the Model.
@@ -282,7 +311,7 @@ namespace MPC_POMDP {
             /**
              * @brief This function returns the transition matrix for inspection.
              *
-             * @return The rewards matrix.
+             * @return The transition matrix.
              */
             const TransitionMatrix & getTransitionFunction() const;
 
@@ -294,6 +323,22 @@ namespace MPC_POMDP {
              * @return The transition function for the input action.
              */
             const Matrix2D & getTransitionFunction(size_t a) const;
+
+            /**
+             * @brief This function returns the trans_end_index matrix for inspection.
+             *
+             * @return The trans_end_index matrix.
+             */
+            const TransitionMatrix & getTransitionEndIndex() const;
+
+            /**
+             * @brief This function returns the trans_end_index for a given end state.
+             *
+             * @param s1 The end state requested.
+             *
+             * @return The transition function for the input action.
+             */
+            const Matrix2D & getTransitionEndIndex(size_t s1) const;
 
             /**
              * @brief This function returns the rewards matrix for inspection.
@@ -319,6 +364,33 @@ namespace MPC_POMDP {
             const Matrix2D & getObservationFunction(size_t a) const;
 
             /**
+             * @brief This function returns the termination vector.
+             *
+             * @return The termination vector.
+             */
+            const std::vector<bool> & getTerminationFunction() const;
+            
+            /**
+             * @brief This function returns the termination vector.
+             *
+             * @return The termination vector.
+             */
+            const std::vector<bool> & getViolationFunction() const;
+
+            /**
+             * @brief This function checks wheter the given state is the termination.
+             *
+             * @return True if the state is the termination state.
+             */
+            bool Model::isTermination(const size_t s) const;
+
+            /**
+             * @brief This function checks wheter the given state violates constraints.
+             *
+             * @return True if the state violate constraints.
+             */            
+            bool Model::isViolation(const size_t s) const;
+            /**
             * @brief This function propogates the POMDP for the specified state action pair.
             *
             * This function propagates the model for simulated experience. The
@@ -339,18 +411,35 @@ namespace MPC_POMDP {
             *
             * @return A tuple containing a new state, observation and reward.
             */
-            std::tuple<size_t,size_t, double> propagateSOR(size_t s,size_t a) const;
+            std::tuple<size_t, size_t, double> propagateSOR(size_t s,size_t a) const;
 
         private:
             size_t S, A, O;
             double discount_;
-		
+		      
+            // Contain the transition probability from s0 to s1 by action a
+            // with transitions_[a](s0, s1)
             TransitionMatrix transitions_;
-            RewardMatrix rewards_; //Contain the expected reward at state s with action a
-            ObservationMatrix obseravtions_; //Observation Matrix for each action is a probability distribution
+            // Contain the expected reward at state s with action a
+            RewardMatrix rewards_; 
+            // Observation Matrix for each action is a probability distribution
+            ObservationMatrix obseravtions_; 
             // Belief beliefs_;
+            // Restructure the transition matrix so that it is indexed by end state
+            // i.e. trans_end_index[s1](A, s0) with size S*A*S
+            TransitionMatrix trans_end_index_; 
+            // The termianal states will have value true with others having false
+            std::vector<bool> terminations_;
+            // The constraints violation states have value true, 
+            // and violation free states having false
+            std::vector<bool> violations_;
 
             mutable RandomEngine rand_;
+
+            /**
+            * @brief This function updates trans_end_index according to transitions_
+            */
+            void updateTransEndIndex();
 	};
 }
 

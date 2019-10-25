@@ -20,3 +20,5 @@ namespace MPC_POMDP {
      */
     Model parseCassandra(std::istream & input);
 }
+
+#endif

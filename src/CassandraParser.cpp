@@ -1,4 +1,4 @@
-#include <CassandraParser.hpp>
+#include "utilities/CassandraParser.hpp"
 
 #include <numeric>
 #include <istream>
@@ -80,6 +80,16 @@ namespace MPC_POMDP {
                 processReward();
                 continue;
             }
+
+            if (boost::starts_with(line, "E")) {
+                processTerVio(TER);
+                continue;
+            }
+
+            if (boost::starts_with(line, "V")) {
+                processTerVio(VIO);
+                continue;
+            }
         }
 
         return POMDPVals(S, A, O, T, R, W, discount);
@@ -132,6 +142,8 @@ namespace MPC_POMDP {
         if (S && A) {
             initMatrix(T, S, A, S);
             initMatrix(R, S, A, S);
+            TER.clear(); VIO.clear();
+            TER.resize(S, false); VIO.resize(S, false); 
             if (O)
                 initMatrix(W, S, A, O);
         }
@@ -212,7 +224,8 @@ namespace MPC_POMDP {
 
         switch (std::count(std::begin(str), std::end(str), ':')) {
             case 3: {
-                // M: <action> : <start-state> : <end-state> <prob>
+                // T : <action> : <start-state> : <end-state> <prob>
+                // O : <action> : <end-state> : <observation> <prob>
                 const auto tokens = tokenize(str, ": ");
 
                 // Action is first both in transition and observation
@@ -228,7 +241,7 @@ namespace MPC_POMDP {
                 break;
             }
             case 2: {
-                // M: <action> : <start-state>
+                // M : <action> : <start-state>
                 // Here we need to read a vector
                 const auto tokens = tokenize(str, ": ");
 
@@ -251,7 +264,7 @@ namespace MPC_POMDP {
                 break;
             }
             case 1: {
-                // M: <action>
+                // M : <action>
                 // Here we need to read a whole 2D table
                 const auto tokens = tokenize(str, ": ");
                 const auto av  = parseIndeces(tokens.at(1), actionMap_, A);
@@ -273,7 +286,7 @@ namespace MPC_POMDP {
 
         switch (std::count(std::begin(str), std::end(str), ':')) {
             case 4: {
-                // R: <action> : <start-state> : <end-state> : <obs> <prob>
+                // R : <action> : <start-state> : <end-state> : <obs> <prob>
                 const auto tokens = tokenize(str, ": ");
 
                 // Action is first both in transition and observation
@@ -286,6 +299,27 @@ namespace MPC_POMDP {
                     for (const auto a : av)
                         for (const auto s1 : s1v)
                             R[s][a][s1] = val;
+                break;
+            }
+            default: throw std::runtime_error("Parsing error: wrong number of ':' in '" + str + "'");
+        }
+    }
+
+    void CassandraParser::processTerVio(std::vector<bool>& M) {
+        const std::string & str = lines_[i_];
+
+        const size_t D1 = M.size();
+
+        switch (std::count(std::begin(str), std::end(str), ':')) {
+            case 1: {
+                // E : <state>
+                // V : <state>
+                const auto tokens = tokenize(str, ": ");
+
+                const auto sv   = parseIndeces(tokens.at(1), stateMap_, D1);
+
+                for (const auto s : sv)
+                    M[s] = true;
                 break;
             }
             default: throw std::runtime_error("Parsing error: wrong number of ':' in '" + str + "'");

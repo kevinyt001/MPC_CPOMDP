@@ -5,7 +5,7 @@
 #include <CassandraParser.hpp>
 
 namespace MPC_POMDP {
-    Model<MDP::Model> parseCassandra(std::istream & input) {
+    Model parseCassandra(std::istream & input) {
         Impl::CassandraParser parser;
 
         const auto & [S, A, O, T, R, W, discount] = parser.parsePOMDP(input);
