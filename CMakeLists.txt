@@ -17,8 +17,6 @@ find_package(Boost COMPONENTS program_options REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 find_package(Eigen3 COMPONENTS program_options REQUIRED)
-
-# find_package(Eigen3 ${EIGEN_VERSION_REQUIRED} REQUIRED)
 include_directories(SYSTEM ${EIGEN3_INCLUDE_DIR})
 
 if (NOT WIN32)
@@ -28,10 +26,9 @@ if (NOT WIN32)
     )
 endif()
 
-add_definitions(-O3 -std=c++17 -lnlopt -lm)
+#add_definitions(-O3 -std=c++17 -lnlopt -lm)
 
 include_directories("${PROJECT_SOURCE_DIR}/include")
-#add_subdirectory(${PROJECT_SOURCE_DIR}/src)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}")
 
@@ -46,9 +43,6 @@ endif()
 
 include_directories(SYSTEM ${NLOPT_INCLUDE_DIRS})
 
-# include helper file
-# include( ${CGAL_USE_FILE} )
-
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -56,7 +50,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 file(GLOB_RECURSE SRC_LIB ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/include/*.hpp)
 
 add_library(${PROJECT_NAME} SHARED ${SRC_LIB})
-target_link_libraries(${PROJECT_NAME} ${NLOPT_LIBRARIES} ${Boost_LIBRARIES} )
+target_link_libraries(${PROJECT_NAME} ${NLOPT_LIBRARIES} ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES})
 
 file(GLOB files ${PROJECT_SOURCE_DIR}/tests/*.cpp)
 
@@ -64,5 +58,5 @@ foreach(f ${files})
 GET_FILENAME_COMPONENT(fname ${f} NAME_WE )
 add_executable(${fname} ${f} )
 #set_property(TARGET ${fname} PROPERTY CXX_STANDARD 17)
-target_link_libraries(${fname} ${PROJECT_NAME} ${NLOPT_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(${fname} ${PROJECT_NAME} ${NLOPT_LIBRARIES} ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES})
 endforeach()

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 
-#include <nlopt.h>
+#include <nlopt.hpp>
 
 #include "Model.hpp"
 #include "utilities/CassandraParser.hpp"
