@@ -1,4 +1,4 @@
-#include <Probability.hpp>
+#include "utilities/Probability.hpp"
 
 namespace MPC_POMDP {
     ProbabilityVector projectToProbability(const Vector & v) {

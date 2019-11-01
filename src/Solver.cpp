@@ -1,8 +1,8 @@
-#include <Solver.hpp>
+#include "Solver.hpp"
 
 namespace MPC_POMDP {
 	POMDPSolver::POMDPSolver(const int h, const double e) :
-	rand_(getSeed())
+	rand_(Seeder::getSeed())
 	{
 		setHorizon(h);
 		setEpsilon(e);
@@ -29,7 +29,7 @@ namespace MPC_POMDP {
 		}
 
 		OptimizerData *bm = reinterpret_cast<OptimizerData*>(fdata);
-		Model* m = bm->model; Belief* b = bm->belief;
+		const Model & m = bm->model; Belief* b = bm->belief;
 
 		double cost = 0;
 		Belief predict_belief = *b;
@@ -37,29 +37,30 @@ namespace MPC_POMDP {
 			Vector g(gamma.data()+i*horizon_, A);
 
 			// belief.transpose: 1*S; rewards_: S*A; g(gamma): A*1
-			cost += predict_belief.transpose() * m->getRewardFunction() * g;
+			cost += predict_belief.transpose() * m.getRewardFunction() * g;
 
 			Belief temp = predict_belief;
 
 			// Update belief for each state
 			for (size_t j = 0; j < S; ++j) {
 				// g.transpose: 1*A; trans_end_index_(j): A*S; belief: S*1
-				predict_belief(j) = g.transpose() * m->getTransitionEndIndex(j) * temp;
+				predict_belief(j) = g.transpose() * m.getTransitionEndIndex(j) * temp;
 			}			
 		}
 
 		return cost;
 	}
 
-	double ineq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, 
+	double POMDPSolver::ineq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, 
 		void* cdata) {
 		if (!grad.empty()) {
 			std::invalid_argument("Optimization solver should be derivative free");
 		}
 
 		OptimizerData *bm = reinterpret_cast<OptimizerData*>(cdata);
-		Model* m = bm->model; Belief* b = bm->belief; double epsilon = bm->epsilon;
+		const Model & m = bm->model; Belief* b = bm->belief; double epsilon = bm->epsilon;
 
+		Belief predict_belief = *b;
 		double vio_rate = 0;
 		for (int i = 0; i < horizon_; ++i) {
 			Vector g(gamma.data()+i*horizon_, A);
@@ -68,11 +69,11 @@ namespace MPC_POMDP {
 			// Update belief for each state
 			for (size_t j = 0; j < S; ++j) {
 				// g.transpose: 1*A; trans_end_index_(j): A*S; belief: S*1
-				predict_belief(j) = g.transpose() * m->getTransitionEndIndex(j) * temp;
+				predict_belief(j) = g.transpose() * m.getTransitionEndIndex(j) * temp;
 			}
 
 			for (size_t j = 0; j < S; ++j) {
-				if(checkDifferentSmall(predict_belief(j), 0) && m->isViolation(j)) {
+				if(checkDifferentSmall(predict_belief(j), 0) && m.isViolation(j)) {
 					vio_rate += predict_belief(j);
 					predict_belief(j) = 0;
 				}
@@ -83,7 +84,7 @@ namespace MPC_POMDP {
 		return vio_rate - epsilon;
 	}
 
-	double eq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, 
+	double POMDPSolver::eq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, 
 		void* cdata) {
 		if (!grad.empty()) {
 			std::invalid_argument("Optimization solver should be derivative free");
@@ -112,7 +113,7 @@ namespace MPC_POMDP {
 
 		size_t curr_state = init_state;
 
-		OptimizerData OD = {&belief, &model, &epsilon_};
+		OptimizerData OD = {&belief, model, epsilon_};
 		
 		nlopt::opt opt(nlopt::LN_COBYLA, A*horizon_);
 		opt.set_min_objective(cost, &OD);

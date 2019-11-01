@@ -4,13 +4,16 @@
 #include <random>
 #include <vector>
 
+#include "DefTypes.hpp"
+#include "utilities/Seeder.hpp"
+#include "utilities/Probability.hpp"
+
 namespace MPC_POMDP {
 	class Model {
         public:
     		using TransitionMatrix = Matrix3D;
     		using RewardMatrix = Matrix2D;
     		using ObservationMatrix = Matrix3D;
-    		using Belief = ProbabilityVector;
 
             /**
              * @brief Basic constructor.
@@ -105,7 +108,8 @@ namespace MPC_POMDP {
              * @param d  The discount factor for the Model.
              */
             Model(NoCheck, size_t s, size_t a, size_t o, TransitionMatrix && t, 
-            	RewardMatrix && r, ObservationMatrix && om, double d);
+            	RewardMatrix && r, ObservationMatrix && om, std::vector<bool> & ter,
+                  std::vector<bool> & vio, double d);
 
             virtual ~Model();
 
@@ -238,7 +242,7 @@ namespace MPC_POMDP {
              *
              * @param vio The external violation container.
              */
-            void setTerminationFunction(const std::vector<bool> & vio);
+            void setViolationFunction(const std::vector<bool> & vio);
 
             /**
              * @brief This function sets a new discount factor for the Model.
@@ -382,14 +386,14 @@ namespace MPC_POMDP {
              *
              * @return True if the state is the termination state.
              */
-            bool Model::isTermination(const size_t s) const;
+            bool isTermination(const size_t s) const;
 
             /**
              * @brief This function checks wheter the given state violates constraints.
              *
              * @return True if the state violate constraints.
              */            
-            bool Model::isViolation(const size_t s) const;
+            bool isViolation(const size_t s) const;
             /**
             * @brief This function propogates the POMDP for the specified state action pair.
             *
@@ -423,7 +427,7 @@ namespace MPC_POMDP {
             // Contain the expected reward at state s with action a
             RewardMatrix rewards_; 
             // Observation Matrix for each action is a probability distribution
-            ObservationMatrix obseravtions_; 
+            ObservationMatrix observations_; 
             // Belief beliefs_;
             // Restructure the transition matrix so that it is indexed by end state
             // i.e. trans_end_index[s1](A, s0) with size S*A*S

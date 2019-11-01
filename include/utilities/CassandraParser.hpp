@@ -17,7 +17,8 @@ namespace MPC_POMDP {
             using ActionMap = std::unordered_map<std::string, std::function<void(const std::string &)>>;
 
             using MDPVals = std::tuple<size_t, size_t, const DumbMatrix3D &, const DumbMatrix3D &, double>;
-            using POMDPVals = std::tuple<size_t, size_t, size_t, const DumbMatrix3D &, const DumbMatrix3D &, const DumbMatrix3D &, double>;
+            using POMDPVals = std::tuple<size_t, size_t, size_t, const DumbMatrix3D &, const DumbMatrix3D &, 
+            const DumbMatrix3D &, const std::vector<bool> &, const std::vector<bool> &, double>;
 
             using Tokens = std::vector<std::string>;
 

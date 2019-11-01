@@ -4,8 +4,8 @@
 #include <random>
 #include <algorithm>
 
-#include <DefTypes.hpp>
-#include <Core.hpp>
+#include "DefTypes.hpp"
+#include "utilities/Core.hpp"
 
 namespace MPC_POMDP {
     static std::uniform_real_distribution<double> probabilityDistribution(0.0, 1.0);

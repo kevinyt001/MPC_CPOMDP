@@ -1,11 +1,11 @@
-#include <Model.hpp>
+#include "Model.hpp"
 
 namespace MPC_POMDP{
 
 	Model::Model(const size_t s, const size_t a, const size_t o, const double discount):
             S(s), A(a), O(o), discount_(discount), 
             transitions_(A, Matrix2D(S, S)), trans_end_index_(S, Matrix2D(A, S)), 
-            rewards_(S, A), observations_(A, Matrix2D(S, O)), rand_(getSeed()),
+            rewards_(S, A), observations_(A, Matrix2D(S, O)), rand_(Seeder::getSeed()),
             terminations_(S, true), violations_(S, false)
 	{
 		for (size_t a = 0; a < A; a++)
@@ -25,7 +25,7 @@ namespace MPC_POMDP{
 	Model::Model(const Model& model):
 			S(model.getS()), A(model.getA()), O(model.getO()), 
             transitions_(A, Matrix2D(S, S)), trans_end_index_(S, Matrix2D(A, S)), 
-            rewards_(S, A), observations_(A, Matrix2D(S, O)), rand_(getSeed()),
+            rewards_(S, A), observations_(A, Matrix2D(S, O)), rand_(Seeder::getSeed()),
             terminations_(S, true), violations_(S, false)
 	{
 		setDiscount(model.getDiscount());
@@ -62,7 +62,7 @@ namespace MPC_POMDP{
     	const OM & om, const TER & ter, const VIO & vio, const double d):
     		S(s), A(a), O(o), 
             transitions_(A, Matrix2D(S, S)), trans_end_index_(S, Matrix2D(A, S)),
-    		rewards_(S, A), observations_(A, Matrix2D(S, O)), rand_(getSeed()),
+    		rewards_(S, A), observations_(A, Matrix2D(S, O)), rand_(Seeder::getSeed()),
             terminations_(S, true), violations_(S, false) 
     {
     	setDiscount(d);
@@ -75,10 +75,10 @@ namespace MPC_POMDP{
 
     Model::Model(NoCheck, const size_t s, const size_t a, const size_t o, TransitionMatrix && t, 
     	RewardMatrix && r, ObservationMatrix && om, std::vector<bool>& ter, 
-        std::vector<bool>& vio const double d):
+        std::vector<bool>& vio, const double d):
     		S(s), A(a), O(o), discount_(d), 
     		transitions_(std::move(t)), rewards_(std::move(r)), observations_(om), 
-    		trans_end_index_(S, Matrix2D(A, S)), rand_(getSeed()),
+    		trans_end_index_(S, Matrix2D(A, S)), rand_(Seeder::getSeed()),
             terminations_(ter), violations_(vio) {
                 updateTransEndIndex();
             }
@@ -156,7 +156,7 @@ namespace MPC_POMDP{
     }
 
     void Model::setViolationFunction(const std::vector<bool> & vio) {
-        if (vio.size() != S) throw std::invalid_argument("Input violation function does not have the correct size")
+        if (vio.size() != S) throw std::invalid_argument("Input violation function does not have the correct size");
     }
 
     void Model::setDiscount(const double d) {
@@ -181,10 +181,10 @@ namespace MPC_POMDP{
         return observations_[a](s1, o);
     }
 
-    const TransitionMatrix & Model::getTransitionFunction() const { return transitions_; }
-    const TransitionMatrix & Model::getTransitionEndIndex() const { return trans_end_index_; }
-    const RewardMatrix &     Model::getRewardFunction()     const { return rewards_; }
-    const ObservationMatrix & Model::getObservationFunction() const { return observations_; }
+    const Model::TransitionMatrix & Model::getTransitionFunction() const { return transitions_; }
+    const Model::TransitionMatrix & Model::getTransitionEndIndex() const { return trans_end_index_; }
+    const Model::RewardMatrix &     Model::getRewardFunction()     const { return rewards_; }
+    const Model::ObservationMatrix & Model::getObservationFunction() const { return observations_; }
     const std::vector<bool> & Model::getTerminationFunction() const { return terminations_; }
     const std::vector<bool> & Model::getViolationFunction() const { return violations_; }
 

@@ -3,7 +3,8 @@
 
 #include <nlopt.hpp>
 
-#include <Model.hpp>
+#include "Model.hpp"
+#include "utilities/Seeder.hpp"
 
 namespace MPC_POMDP {
     /**
@@ -20,6 +21,13 @@ namespace MPC_POMDP {
 
 	class POMDPSolver {
 		public:
+
+            struct OptimizerData {
+                Belief* belief;
+                const Model & model;
+                double epsilon;
+            };
+
 			/**
              * @brief Basic constructor.
              *
@@ -76,18 +84,12 @@ namespace MPC_POMDP {
 
         	mutable RandomEngine rand_;
 
-        	double cost(const std::vector<double> &gamma, const std::vector<double> &grad, void* fdata);
+        	static double cost(const std::vector<double> &gamma, std::vector<double> &grad, void* fdata);
 
-        	double ineq_constraint(const std::vector<double> &gamma, const std::vector<double> &grad, void* cdata);
+        	static double ineq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, void* cdata);
 
-            double eq_constraint(const std::vector<double> &gamma, const std::vector<double> &grad, void* cdata);
-
-        	struct OptimizerData {
-        		Belief* belief;
-        		Model* model;
-        		double epsilon;
-        	};
-	}
+            double eq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, void* cdata);
+	};
 }
 
 #endif

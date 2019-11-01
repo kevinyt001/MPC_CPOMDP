@@ -2,6 +2,10 @@ cmake_minimum_required (VERSION 3.9) # CMP0069 NEW
 
 project (MPC_POMDP LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 ##############################
 ##       Dependencies       ##
 ##############################
@@ -17,7 +21,14 @@ find_package(Eigen3 COMPONENTS program_options REQUIRED)
 # find_package(Eigen3 ${EIGEN_VERSION_REQUIRED} REQUIRED)
 include_directories(SYSTEM ${EIGEN3_INCLUDE_DIR})
 
-add_definitions(-O3 -std=c++11)
+if (NOT WIN32)
+    add_definitions(
+        -Wall
+        -Wextra
+    )
+endif()
+
+add_definitions(-O3 -std=c++17)
 
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
@@ -49,5 +60,6 @@ file(GLOB files ${PROJECT_SOURCE_DIR}/tests/*.cpp)
 foreach(f ${files})
 GET_FILENAME_COMPONENT(fname ${f} NAME_WE )
 add_executable(${fname} ${f} )
+set_property(TARGET ${fname} PROPERTY CXX_STANDARD 17)
 target_link_libraries(${fname} ${PROJECT_NAME})
 endforeach()

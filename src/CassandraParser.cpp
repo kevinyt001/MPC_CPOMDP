@@ -92,7 +92,7 @@ namespace MPC_POMDP {
             }
         }
 
-        return POMDPVals(S, A, O, T, R, W, discount);
+        return POMDPVals(S, A, O, T, R, W, TER, VIO, discount);
     }
 
     // ############################
@@ -189,6 +189,7 @@ namespace MPC_POMDP {
             retval.resize(max);
             std::iota(std::begin(retval), std::end(retval), 0);
         } else {
+             
             if (auto it = map.find(str); it != std::end(map)) {
                 retval.push_back(it->second);
             } else {

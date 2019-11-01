@@ -4,7 +4,7 @@
 #include <cmath>
 #include <limits>
 
-#include <Types.hpp>
+#include "DefTypes.hpp"
 
 #include <boost/functional/hash.hpp>
 
@@ -327,7 +327,7 @@ namespace Eigen {
     /**
      * @brief This function enables hashing of Vectors with boost::hash.
      */
-    inline size_t hash_value(const AIToolbox::Vector & v) {
+    inline size_t hash_value(const MPC_POMDP::Vector & v) {
         return boost::hash_range(v.data(), v.data() + v.size());
     }
 }
