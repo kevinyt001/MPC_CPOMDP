@@ -29,12 +29,15 @@ namespace MPC_POMDP {
 		}
 
 		OptimizerData *bm = reinterpret_cast<OptimizerData*>(fdata);
-		const Model & m = bm->model; Belief* b = bm->belief;
+		const Model & m = bm->model; Belief* b = bm->belief; int h = bm->horizon;
 
 		double cost = 0;
 		Belief predict_belief = *b;
-		for (int i = 0; i < horizon_; ++i) {
-			Vector g(gamma.data()+i*horizon_, A);
+		for (int i = 0; i < h; ++i) {
+			// Eigen::Map<Vector> g(gamma.data()+i*h, m.getA());
+			Vector g(m.getA());
+			for (size_t j = 0; j < m.getA(); ++j) 
+				g(j) = gamma[i*h+j];
 
 			// belief.transpose: 1*S; rewards_: S*A; g(gamma): A*1
 			cost += predict_belief.transpose() * m.getRewardFunction() * g;
@@ -42,7 +45,7 @@ namespace MPC_POMDP {
 			Belief temp = predict_belief;
 
 			// Update belief for each state
-			for (size_t j = 0; j < S; ++j) {
+			for (size_t j = 0; j < m.getS(); ++j) {
 				// g.transpose: 1*A; trans_end_index_(j): A*S; belief: S*1
 				predict_belief(j) = g.transpose() * m.getTransitionEndIndex(j) * temp;
 			}			
@@ -59,20 +62,24 @@ namespace MPC_POMDP {
 
 		OptimizerData *bm = reinterpret_cast<OptimizerData*>(cdata);
 		const Model & m = bm->model; Belief* b = bm->belief; double epsilon = bm->epsilon;
+		int h = bm->horizon;
 
 		Belief predict_belief = *b;
 		double vio_rate = 0;
-		for (int i = 0; i < horizon_; ++i) {
-			Vector g(gamma.data()+i*horizon_, A);
+		for (int i = 0; i < h; ++i) {
+			// Eigen::Map<Vector> g(gamma.data()+i*h, m.getA());
 			Belief temp = predict_belief;
+			Vector g(m.getA());
+			for (size_t j = 0; j < m.getA(); ++j) 
+				g(j) = gamma[i*h+j];
 
 			// Update belief for each state
-			for (size_t j = 0; j < S; ++j) {
+			for (size_t j = 0; j < m.getS(); ++j) {
 				// g.transpose: 1*A; trans_end_index_(j): A*S; belief: S*1
 				predict_belief(j) = g.transpose() * m.getTransitionEndIndex(j) * temp;
 			}
 
-			for (size_t j = 0; j < S; ++j) {
+			for (size_t j = 0; j < m.getS(); ++j) {
 				if(checkDifferentSmall(predict_belief(j), 0) && m.isViolation(j)) {
 					vio_rate += predict_belief(j);
 					predict_belief(j) = 0;
@@ -90,14 +97,15 @@ namespace MPC_POMDP {
 			std::invalid_argument("Optimization solver should be derivative free");
 		}
 
-		int *N = reinterpret_cast<int*>(cdata);
+		EqConData *ed = reinterpret_cast<EqConData*>(cdata);
+		const Model & m = ed->model; int h = ed->horizon; int N = ed->N; 
 
-		if (*N >= horizon_) 
+		if (N >= h) 
 			std::invalid_argument("Equality constraints exceed the horizon limit");
 
 		double res = 0;
-		for(size_t i = 0; i < A; ++i) {
-			res += gamma[(*N)*A+i];
+		for(size_t i = 0; i < m.getA(); ++i) {
+			res += gamma[N*m.getA()+i];
 		}
 
 		return res-1;
@@ -113,21 +121,21 @@ namespace MPC_POMDP {
 
 		size_t curr_state = init_state;
 
-		OptimizerData OD = {&belief, model, epsilon_};
+		OptimizerData OD = {&belief, model, epsilon_, horizon_};
 		
 		nlopt::opt opt(nlopt::LN_COBYLA, A*horizon_);
 		opt.set_min_objective(cost, &OD);
 		opt.add_inequality_constraint(ineq_constraint, &OD, 0.0);
 
-		std::vector<int> eqcon_data(horizon_, 0);
+		std::vector<EqConData> eqcon_data(horizon_, {model, horizon_, 0});
 		for (int i = 0; i < horizon_; i++) {
-			eqcon_data[i] = i;
+			eqcon_data[i].N = i;
 			opt.add_equality_constraint(eq_constraint, &eqcon_data[i], equalToleranceGeneral);
 		}
 
 		double tot_cost = 0;
 
-		while(!model.isTerminal(curr_state)) {
+		while(!model.isTermination(curr_state)) {
 			std::vector<double> gamma(A*horizon_, 1.0/(double)A);
 			double cost_temp = 0;
 

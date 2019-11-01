@@ -28,9 +28,10 @@ if (NOT WIN32)
     )
 endif()
 
-add_definitions(-O3 -std=c++17)
+add_definitions(-O3 -std=c++17 -lnlopt -lm)
 
 include_directories("${PROJECT_SOURCE_DIR}/include")
+#add_subdirectory(${PROJECT_SOURCE_DIR}/src)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}")
 
@@ -43,6 +44,8 @@ if ( NOT NLOPT_FOUND)
 
 endif()
 
+include_directories(SYSTEM ${NLOPT_INCLUDE_DIRS})
+
 # include helper file
 # include( ${CGAL_USE_FILE} )
 
@@ -53,13 +56,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 file(GLOB_RECURSE SRC_LIB ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/include/*.hpp)
 
 add_library(${PROJECT_NAME} SHARED ${SRC_LIB})
-target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} )
+target_link_libraries(${PROJECT_NAME} ${NLOPT_LIBRARIES} ${Boost_LIBRARIES} )
 
 file(GLOB files ${PROJECT_SOURCE_DIR}/tests/*.cpp)
 
 foreach(f ${files})
 GET_FILENAME_COMPONENT(fname ${f} NAME_WE )
 add_executable(${fname} ${f} )
-set_property(TARGET ${fname} PROPERTY CXX_STANDARD 17)
-target_link_libraries(${fname} ${PROJECT_NAME})
+#set_property(TARGET ${fname} PROPERTY CXX_STANDARD 17)
+target_link_libraries(${fname} ${PROJECT_NAME} ${NLOPT_LIBRARIES} ${Boost_LIBRARIES})
 endforeach()

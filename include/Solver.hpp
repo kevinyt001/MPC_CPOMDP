@@ -1,10 +1,12 @@
 #ifndef MPC_POMDP_SOLVER_HEADER_FILE
 #define MPC_POMDP_SOLVER_HEADER_FILE
 
+#include <iostream>
 #include <nlopt.hpp>
 
 #include "Model.hpp"
 #include "utilities/Seeder.hpp"
+#include "utilities/Utils.hpp"
 
 namespace MPC_POMDP {
     /**
@@ -26,6 +28,13 @@ namespace MPC_POMDP {
                 Belief* belief;
                 const Model & model;
                 double epsilon;
+                int horizon;
+            };
+
+            struct EqConData {
+                const Model & model;
+                int horizon;
+                int N;
             };
 
 			/**
@@ -88,7 +97,7 @@ namespace MPC_POMDP {
 
         	static double ineq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, void* cdata);
 
-            double eq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, void* cdata);
+            static double eq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, void* cdata);
 	};
 }
 

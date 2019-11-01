@@ -3,7 +3,7 @@
 
 #include <DefTypes.hpp>
 
-using namespace MPC_POMDP {
+namespace MPC_POMDP {
     /**
      * @brief Creates a new belief reflecting changes after an action 
      * and observation for a particular Model.

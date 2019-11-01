@@ -1,4 +1,9 @@
 
+#include <iostream>
+#include <fstream>
+
+#include <nlopt.h>
+
 #include "Model.hpp"
 #include "utilities/CassandraParser.hpp"
 #include "IO.hpp"

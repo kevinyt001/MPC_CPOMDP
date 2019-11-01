@@ -111,7 +111,7 @@ namespace MPC_POMDP {
             	RewardMatrix && r, ObservationMatrix && om, std::vector<bool> & ter,
                   std::vector<bool> & vio, double d);
 
-            virtual ~Model();
+            // virtual ~Model();
 
             /**
              * @brief This function replaces the Model transition function with the one provided.
