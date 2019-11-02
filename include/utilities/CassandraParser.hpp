@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <functional>
 
+#include "Model.hpp"
+
 namespace MPC_POMDP {
     class CassandraParser {
         private:

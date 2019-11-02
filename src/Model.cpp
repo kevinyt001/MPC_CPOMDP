@@ -57,22 +57,6 @@ namespace MPC_POMDP{
 
 	}
 
-    template <typename T, typename R, typename OM, typename TER, typename VIO>
-    Model::Model(const size_t s, const size_t a, const size_t o, const T & t, const R & r, 
-    	const OM & om, const TER & ter, const VIO & vio, const double d):
-    		S(s), A(a), O(o), 
-            transitions_(A, Matrix2D(S, S)), trans_end_index_(S, Matrix2D(A, S)),
-    		rewards_(S, A), observations_(A, Matrix2D(S, O)), rand_(Seeder::getSeed()),
-            terminations_(S, true), violations_(S, false) 
-    {
-    	setDiscount(d);
-    	setTransitionFunction(t);
-    	setRewardFunction(r);
-    	setObservationFunction(om);
-        setTerminationFunction(ter);
-        setViolationFunction(vio);
-    }
-
     Model::Model(NoCheck, const size_t s, const size_t a, const size_t o, TransitionMatrix && t, 
     	RewardMatrix && r, ObservationMatrix && om, std::vector<bool>& ter, 
         std::vector<bool>& vio, const double d):
@@ -82,21 +66,6 @@ namespace MPC_POMDP{
             terminations_(ter), violations_(vio) {
                 updateTransEndIndex();
             }
-
-    template <typename T>
-    void Model::setTransitionFunction(const T & t) {
-        for ( size_t s = 0; s < S; ++s )
-            for ( size_t a = 0; a < A; ++a )
-                if ( !isProbability(S, t[s][a]) )
-                    throw std::invalid_argument("Input transition matrix does not contain valid probabilities.");
-
-        for ( size_t s = 0; s < S; ++s )
-            for ( size_t a = 0; a < A; ++a )
-                for ( size_t s1 = 0; s1 < S; ++s1 )
-                    transitions_[a](s, s1) = t[s][a][s1];
-
-        updateTransEndIndex();
-    }
 
     void Model::setTransitionFunction(const TransitionMatrix & t) {
         for ( size_t a = 0; a < A; ++a ) {
@@ -113,30 +82,8 @@ namespace MPC_POMDP{
         updateTransEndIndex();
     }
 
-    template <typename R>
-    void Model::setRewardFunction(const R & r) {
-        rewards_.setZero();
-        for ( size_t s = 0; s < S; ++s )
-            for ( size_t a = 0; a < A; ++a )
-                for ( size_t s1 = 0; s1 < S; ++s1 )
-                    rewards_(s, a) += r[s][a][s1] * transitions_[a](s, s1);
-    }
-
     void Model::setRewardFunction(const RewardMatrix & r) {
         rewards_ = r;
-    }
-
-    template <typename OM>
-    void Model::setObservationFunction(const OM & om) {
-        for ( size_t s1 = 0; s1 < S; ++s1 )
-            for ( size_t a = 0; a < A; ++a )
-                if ( !isProbability(O, om[s1][a]) )
-                    throw std::invalid_argument("Input observation matrix does not contain valid probabilities.");
-
-        for ( size_t s1 = 0; s1 < S; ++s1 )
-            for ( size_t a = 0; a < A; ++a )
-                for ( size_t o = 0; o < O; ++o )
-                    observations_[a](s1, o) = om[s1][a][o];
     }
 
 	void Model::setObservationFunction(const ObservationMatrix & om) {
