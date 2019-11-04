@@ -51,6 +51,12 @@ namespace MPC_POMDP {
 			}			
 		}
 
+		std::cout << cost << std::endl;
+		// for (size_t i = 0; i < h*m.getA(); ++i) {
+		// 	std::cout << gamma[i] << " ";
+		// }
+		// std::cout << std::endl;
+
 		return cost;
 	}
 
@@ -127,6 +133,10 @@ namespace MPC_POMDP {
 		opt.set_min_objective(cost, &OD);
 		opt.add_inequality_constraint(ineq_constraint, &OD, 0.0);
 
+		// Set lower bound and upper bound on gamma
+		opt.set_lower_bounds(0.0);
+		opt.set_upper_bounds(1.0);
+
 		std::vector<EqConData> eqcon_data(horizon_, {model, horizon_, 0});
 		for (int i = 0; i < horizon_; i++) {
 			eqcon_data[i].N = i;
@@ -139,12 +149,21 @@ namespace MPC_POMDP {
 			std::vector<double> gamma(A*horizon_, 1.0/(double)A);
 			double cost_temp = 0;
 
+			std::cout << "Optionmation Starts" << std::endl;
+
 			try{
 				nlopt::result result = opt.optimize(gamma, cost_temp);
 			}
 			catch(std::exception &e) {
     			std::cout << "nlopt failed: " << e.what() << std::endl;
 			}
+
+			std::cout << "Step: " << timestep << std::endl;
+			for (size_t i = 0; i < horizon_*A; ++i) {
+				std::cout << gamma[i] << " ";
+			}
+			std::cout << std::endl;
+			// std::cout << "Number of evaluations: " << count << std::endl;
 
 			tot_cost += cost_temp;
 
@@ -158,6 +177,7 @@ namespace MPC_POMDP {
 
 			curr_state = std::get<0>(SOR);
 
+			++timestep;
 		}
 	}
 }

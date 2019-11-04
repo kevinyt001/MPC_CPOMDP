@@ -104,6 +104,7 @@ namespace MPC_POMDP{
 
     void Model::setViolationFunction(const std::vector<bool> & vio) {
         if (vio.size() != S) throw std::invalid_argument("Input violation function does not have the correct size");
+        violations_ = vio;
     }
 
     void Model::setDiscount(const double d) {
@@ -153,6 +154,6 @@ namespace MPC_POMDP{
         for ( size_t s = 0; s < S; ++s )
             for ( size_t a = 0; a < A; ++a )
                 for ( size_t s1 = 0; s1 < S; ++s1 )
-                    trans_end_index_[s1](a, s) = transitions_[a](s,s1);
+                    trans_end_index_[s1](a, s) = transitions_[a](s, s1);
     }
 }

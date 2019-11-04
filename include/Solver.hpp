@@ -23,7 +23,6 @@ namespace MPC_POMDP {
 
 	class POMDPSolver {
 		public:
-
             struct OptimizerData {
                 Belief* belief;
                 const Model & model;
