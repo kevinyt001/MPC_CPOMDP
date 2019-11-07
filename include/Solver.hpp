@@ -97,6 +97,8 @@ namespace MPC_POMDP {
         	static double ineq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, void* cdata);
 
             static double eq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, void* cdata);
+
+            static void eq_constraint_vector(unsigned int m, double* result, unsigned int n, const double* gamma, double* grad, void* cdata);
 	};
 }
 
