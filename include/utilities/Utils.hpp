@@ -22,7 +22,8 @@ namespace MPC_POMDP {
      * @param o The observation registered.
      * @param bRet The output belief.
      */
-    void updateBeliefUnnormalized(const Model & model, const Belief & b, 
+    template<typename M>
+    void updateBeliefUnnormalized(const M & model, const Belief & b, 
         const size_t a, const size_t o, Belief * bRet) {
         
         if (!bRet) return;
@@ -60,7 +61,8 @@ namespace MPC_POMDP {
      * @param a The action taken during the transition.
      * @param o The observation registered.
      */
-    Belief updateBeliefUnnormalized(const Model & model, const Belief & b, 
+    template<typename M>
+    Belief updateBeliefUnnormalized(const M & model, const Belief & b, 
         const size_t a, const size_t o) {
         Belief br(model.getS());
         updateBeliefUnnormalized(model, b, a, o, &br);
@@ -88,7 +90,8 @@ namespace MPC_POMDP {
      * @param o The observation registered.
      * @param bRet The output belief.
      */
-    void updateBelief(const Model & model, const Belief & b, const size_t a, 
+    template<typename M>
+    void updateBelief(const M & model, const Belief & b, const size_t a, 
         const size_t o, Belief * bRet) {
         if (!bRet) return;
 
@@ -118,7 +121,8 @@ namespace MPC_POMDP {
      * @param a The action taken during the transition.
      * @param o The observation registered.
      */
-    Belief updateBelief(const Model & model, const Belief & b, const size_t a, 
+    template<typename M>
+    Belief updateBelief(const M & model, const Belief & b, const size_t a, 
         const size_t o) {
         Belief br(model.getS());
         updateBelief(model, b, a, o, &br);

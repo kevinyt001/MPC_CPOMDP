@@ -1,6 +1,4 @@
 #include "IO.hpp"
-#include "utilities/CassandraParser.hpp"
-#include "Model.hpp"
 
 namespace MPC_POMDP {
     Model parseCassandra(std::istream & input) {
@@ -9,6 +7,14 @@ namespace MPC_POMDP {
         const auto & [S, A, O, T, R, W, TER, VIO, discount] = parser.parsePOMDP(input);
 
         return Model(S, A, O, T, R, W, TER, VIO, discount);
+    }
+
+    SparseModel parseCassandraSparse(std::istream & input) {
+        CassandraParser parser;
+
+        const auto & [S, A, O, T, R, W, TER, VIO, discount] = parser.parsePOMDP(input);
+
+        return SparseModel(S, A, O, T, R, W, TER, VIO, discount);
     }
 
 }

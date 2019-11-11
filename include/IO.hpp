@@ -5,6 +5,7 @@
 #include <iomanip>
 
 #include "Model.hpp"
+#include "SparseModel.hpp"
 #include "DefTypes.hpp"
 #include "utilities/CassandraParser.hpp"
 
@@ -20,6 +21,9 @@ namespace MPC_POMDP {
      * @return The parsed model.
      */
     Model parseCassandra(std::istream & input);
+
+    SparseModel parseCassandraSparse(std::istream & input);
+
 }
 
 #endif

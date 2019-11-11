@@ -2,6 +2,7 @@
 #define MPC_POMDP_SOLVER_HEADER_FILE
 
 #include <iostream>
+#include <algorithm>
 #include <nlopt.hpp>
 
 #include "Model.hpp"
@@ -23,15 +24,17 @@ namespace MPC_POMDP {
 
 	class POMDPSolver {
 		public:
+            template<typename M>
             struct OptimizerData {
                 Belief* belief;
-                const Model & model;
+                const M & model;
                 double epsilon;
                 int horizon;
             };
 
+            template<typename M>
             struct EqConData {
-                const Model & model;
+                const M & model;
                 int horizon;
                 int N;
             };
@@ -83,7 +86,8 @@ namespace MPC_POMDP {
              *
              * @return 
              */
-            void operator()(const Model & model, const size_t init_state, Belief& belief);
+            template<typename M>
+            void operator()(const M & model, const size_t init_state, Belief& belief);
 
         private:
         	size_t S, A, O;
@@ -92,14 +96,286 @@ namespace MPC_POMDP {
 
         	mutable RandomEngine rand_;
 
+            template<typename M>
         	static double cost(const std::vector<double> &gamma, std::vector<double> &grad, void* fdata);
 
+            template<typename M>
         	static double ineq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, void* cdata);
 
+            template<typename M>
             static double eq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, void* cdata);
 
+            template<typename M>
             static void eq_constraint_vector(unsigned int m, double* result, unsigned int n, const double* gamma, double* grad, void* cdata);
 	};
+
+    template<typename M>
+    void POMDPSolver::operator()(const M & model, const size_t init_state, Belief& belief) {
+        S = model.getS();
+        A = model.getA();
+        O = model.getO();
+
+        int timestep = 0;
+
+        size_t curr_state = init_state;
+
+        OptimizerData<M> OD = {&belief, model, epsilon_, horizon_};
+        
+        nlopt::opt opt(nlopt::LD_SLSQP, A*horizon_);
+        opt.set_min_objective(cost<M>, &OD);
+        opt.add_inequality_constraint(ineq_constraint<M>, &OD, 0.0);
+
+        // Set lower bound and upper bound on gamma
+        opt.set_lower_bounds(0.0);
+        opt.set_upper_bounds(1.0);      
+
+        // Add Equlaity Constraints One by One
+        // std::vector<EqConData> eqcon_data(horizon_, {model, horizon_, 0});
+        // for (int i = 0; i < horizon_; i++) {
+        //  eqcon_data[i].N = i;
+        //  opt.add_equality_constraint(eq_constraint, &eqcon_data[i], equalToleranceGeneral);
+        // }
+
+        // Add Vector Valued Equality Constraints
+        EqConData<M> eqcon_data({model, horizon_, 0});
+        std::vector<double> tol(horizon_, equalToleranceGeneral);
+        opt.add_equality_mconstraint(eq_constraint_vector<M>, &eqcon_data, tol);
+
+        // Set termination
+        // opt.set_ftol_abs(0.1);
+        // opt.set_xtol_rel(0.1);
+        // opt.set_stopval(190.0);
+
+        double tot_cost = 0;
+
+        while(!model.isTermination(curr_state)) {
+            std::vector<double> gamma(A*horizon_, 1.0/(double)A);
+            double cost_temp = 0;
+
+            clock_t t = clock();
+
+            std::cout << "Optionmation Starts" << std::endl;
+
+            try{
+                // nlopt::result result = opt.optimize(gamma, cost_temp);
+                opt.optimize(gamma, cost_temp);
+            }
+            catch(std::exception &e) {
+                std::cout << "nlopt failed: " << e.what() << std::endl;
+            }
+
+            t = clock() - t;
+
+            std::cout << "Computational time for this step is : " << (double) t/CLOCKS_PER_SEC << std::endl;
+            std::cout << "Clock per seconds is : " << CLOCKS_PER_SEC << std::endl;
+
+            std::cout << "Step: " << timestep << std::endl;
+            std::cout << "Cost: " << cost_temp << std::endl;
+            for (size_t i = 0; i < horizon_*A; ++i) {
+                std::cout << gamma[i] << " ";
+            }
+            std::cout << std::endl;
+            // std::cout << "Number of evaluations: " << count << std::endl;
+
+            tot_cost += cost_temp;
+
+            size_t action = sampleProbability(A, gamma, rand_);
+
+            std::tuple<size_t, size_t, double> SOR = model.propagateSOR(curr_state, action);
+
+            Belief belief_temp(S);
+            updateBelief(model, belief, action, std::get<1>(SOR), &belief_temp);
+            belief = belief_temp;
+
+            curr_state = std::get<0>(SOR);
+
+            ++timestep;
+        }
+    }
+
+    template<typename M>
+    double POMDPSolver::cost(const std::vector<double> &gamma, std::vector<double> &grad, 
+        void* fdata) {
+        if (!grad.empty()) {
+            std::fill(grad.begin(), grad.end(), 0);
+            std::vector<double> temp_gamma = gamma;
+            std::vector<double> temp;
+            for(size_t i = 0; i < gamma.size(); ++i) {
+                temp_gamma[i] = gamma[i] + std::max(gamma[i]*0.05, 0.01);
+                double adj1 = temp_gamma[i] - gamma[i];
+                double temp1 = cost<M>(temp_gamma, temp, fdata);
+                temp_gamma[i] = std::max(gamma[i] - std::max(gamma[i]*0.05, 0.01), equalToleranceSmall);
+                double adj2 = temp_gamma[i] - gamma[i];
+                double temp2 = cost<M>(temp_gamma, temp, fdata);
+
+                grad[i] = (temp1 - temp2) / (adj1 - adj2);
+
+                temp_gamma[i] = gamma[i];
+            }
+        }
+
+        OptimizerData<M> *bm = reinterpret_cast<OptimizerData<M>*>(fdata);
+        const M & m = bm->model; Belief* b = bm->belief; int h = bm->horizon;
+
+        double cost = 0;
+        Belief predict_belief = *b;
+        for (int i = 0; i < h; ++i) {
+            // Eigen::Map<Vector> g(gamma.data()+i*h, m.getA());
+            Vector g(m.getA());
+            for (size_t j = 0; j < m.getA(); ++j) 
+                g(j) = gamma[i*h+j];
+
+            /*
+            // rewards_.transpose: A*S; belief: S*1
+            Vector temp_grad = m.getRewardFunction().transpose() * predict_belief;
+            // temp_grad.transpose: 1*A; g(gamma): A*1
+            cost += temp_grad.transpose() * g;
+
+            if (!grad.empty()) {
+                for(size_t j = 0; j < m.getA(); ++j)
+                    grad[i*h+j] = temp_grad(j);
+            }
+            */
+
+            // belief.transpose: 1*S; rewards_: S*A; g(gamma): A*1
+            cost += predict_belief.transpose() * m.getRewardFunction() * g;
+
+            Belief temp = predict_belief;
+
+            // Update belief for each state
+            for (size_t j = 0; j < m.getS(); ++j) {
+                // g.transpose: 1*A; trans_end_index_(j): A*S; belief: S*1
+                predict_belief(j) = g.transpose() * m.getTransitionEndIndex(j) * temp;
+            }           
+        }
+
+        // std::cout << cost << std::endl;
+        // for (size_t i = 0; i < h*m.getA(); ++i) {
+        //  std::cout << gamma[i] << " ";
+        // }
+        // std::cout << std::endl;
+
+        return cost;
+    }
+
+    template<typename M>
+    double POMDPSolver::ineq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, 
+        void* cdata) {
+        if (!grad.empty()) {
+            std::fill(grad.begin(), grad.end(), 0);
+            std::vector<double> temp_gamma = gamma;
+            std::vector<double> temp;
+            for(size_t i = 0; i < gamma.size(); ++i) {
+                temp_gamma[i] = gamma[i] + std::max(gamma[i]*0.05, 0.01);
+                double adj1 = temp_gamma[i] - gamma[i];
+                double temp1 = ineq_constraint<M>(temp_gamma, temp, cdata);
+                temp_gamma[i] = std::max(gamma[i] - std::max(gamma[i]*0.05, 0.01), equalToleranceSmall);
+                double adj2 = temp_gamma[i] - gamma[i];
+                double temp2 = ineq_constraint<M>(temp_gamma, temp, cdata);
+
+                grad[i] = (temp1 - temp2) / (adj1 - adj2);
+
+                temp_gamma[i] = gamma[i];
+            }
+        }
+
+        OptimizerData<M> *bm = reinterpret_cast<OptimizerData<M>*>(cdata);
+        const M & m = bm->model; Belief* b = bm->belief; double epsilon = bm->epsilon;
+        int h = bm->horizon;
+
+        Belief predict_belief = *b;
+        double vio_rate = 0;
+        for (int i = 0; i < h; ++i) {
+            // Eigen::Map<Vector> g(gamma.data()+i*h, m.getA());
+            Belief temp = predict_belief;
+            Vector g(m.getA());
+            for (size_t j = 0; j < m.getA(); ++j) 
+                g(j) = gamma[i*h+j];
+
+            /*
+            // Update belief for each state
+            for (size_t j = 0; j < m.getS(); ++j) {
+                // trans_end_index_(j): A*S; belief: S*1
+                Vector temp_grad = m.getTransitionEndIndex(j) * temp;
+                // g.transpose: 1*A; trans_end_index_(j): A*S; belief: S*1
+                predict_belief(j) = g.transpose() * temp_grad;
+
+                if(checkDifferentSmall(predict_belief(j), 0) && m.isViolation(j)) {
+                    if (!grad.empty()) {
+                        for (size_t k = 0; k < m.getA(); ++k)
+                            grad[i*h+k] += temp_grad(k);
+                    }
+                    vio_rate += predict_belief(j);
+                    predict_belief(j) = 0;
+                }
+            }
+            */
+
+            // Update belief for each state
+            for (size_t j = 0; j < m.getS(); ++j) {
+                // g.transpose: 1*A; trans_end_index_(j): A*S; belief: S*1
+                predict_belief(j) = g.transpose() * m.getTransitionEndIndex(j) * temp;
+            }
+
+            for (size_t j = 0; j < m.getS(); ++j) {
+                if(checkDifferentSmall(predict_belief(j), 0) && m.isViolation(j)) {
+                    vio_rate += predict_belief(j);
+                    predict_belief(j) = 0;
+                }
+            }
+        }
+
+        // return value <= 0 means constraint satisfaction.
+        return vio_rate - epsilon;
+    }
+
+    template<typename M>
+    double POMDPSolver::eq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, 
+        void* cdata) {
+        if (!grad.empty()) {
+            std::invalid_argument("Optimization solver should be derivative free");
+        }
+
+        EqConData<M> *ed = reinterpret_cast<EqConData<M>*>(cdata);
+        const M & m = ed->model; int h = ed->horizon; int N = ed->N; 
+
+        if (N >= h) 
+            std::invalid_argument("Equality constraints exceed the horizon limit");
+
+        double res = 0;
+        for(size_t i = 0; i < m.getA(); ++i) {
+            res += gamma[N*m.getA()+i];
+        }
+
+        return res-1;
+
+    }
+
+    template<typename M>
+    void POMDPSolver::eq_constraint_vector(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
+        EqConData<M> *ed = reinterpret_cast<EqConData<M>*>(cdata);
+        const M & m = ed->model; int h = ed->horizon;
+
+        if (grad) {
+            for(size_t i = 0; i < ms; ++i) {
+                for(size_t j = 0; j < n; ++j) {
+                    grad[i*n+j] = 0;
+                    if(j >= i*h && j < (i+1)*h)
+                        grad[i*n+j] = 1;
+                }
+            }
+        }
+
+        for(int N = 0; N < h; ++N) {
+            double res = 0;
+            for(size_t i = 0; i < m.getA(); ++i) {
+                res += gamma[N*m.getA()+i];
+            }
+            result[N] = res - 1.0;
+        }
+
+        return;
+    }
 }
 
 #endif

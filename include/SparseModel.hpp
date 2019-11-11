@@ -1,5 +1,5 @@
-#ifndef MPC_POMDP_MODEL_HEADER_FILE
-#define MPC_POMDP_MODEL_HEADER_FILE
+#ifndef MPC_POMDP_SPARSE_MODEL_HEADER_FILE
+#define MPC_POMDP_SPARSE_MODEL_HEADER_FILE
 
 #include <utility>
 #include <random>
@@ -10,16 +10,16 @@
 #include "utilities/Probability.hpp"
 
 namespace MPC_POMDP {
-	class Model {
+	class SparseModel {
         public:
-    		using TransitionMatrix = Matrix3D;
-    		using RewardMatrix = Matrix2D;
-    		using ObservationMatrix = Matrix3D;
+    		using TransitionMatrix = SparseMatrix3D;
+    		using RewardMatrix = SparseMatrix2D;
+    		using ObservationMatrix = SparseMatrix3D;
 
             /**
              * @brief Basic constructor.
              *
-             * This constructor initializes the Model so that all
+             * This constructor initializes the SparseModel so that all
              * transitions happen with probability 0 but for transitions
              * that bring back to the same state, no matter the action.
              *
@@ -31,7 +31,7 @@ namespace MPC_POMDP {
              * @param o The number of observations the agent could make.
              * @param discount The discount factor for the POMDP.
              */
-    		Model(size_t s, size_t a, size_t o, double discount = 1.0);
+    		SparseModel(size_t s, size_t a, size_t o, double discount = 1.0);
 
             /**
              * @brief Copy constructor from any valid POMDP model.
@@ -44,7 +44,7 @@ namespace MPC_POMDP {
              *
              * @param model The model that needs to be copied.
              */
-            Model(const Model& model);
+            SparseModel(const SparseModel& model);
 
             /**
              * @brief Basic constructor.
@@ -86,7 +86,7 @@ namespace MPC_POMDP {
              * @param d  The discount factor for the POMDP.
              */
             template <typename T, typename R, typename OM, typename TER, typename VIO>
-            Model(size_t s, size_t a, size_t o, const T & t, const R & r, 
+            SparseModel(size_t s, size_t a, size_t o, const T & t, const R & r, 
             	const OM & om, const TER & ter, const VIO & vio, double d = 1.0);
 
             /**
@@ -108,14 +108,14 @@ namespace MPC_POMDP {
              * @param om The observation function to be used in the Model.
              * @param d  The discount factor for the Model.
              */
-            Model(NoCheck, size_t s, size_t a, size_t o, TransitionMatrix && t, 
+            SparseModel(NoCheck, size_t s, size_t a, size_t o, TransitionMatrix && t, 
             	RewardMatrix && r, ObservationMatrix && om, std::vector<bool> & ter,
                   std::vector<bool> & vio, double d);
 
             // ~Model();
 
             /**
-             * @brief This function replaces the Model transition function with the one provided.
+             * @brief This function replaces the SparseModel transition function with the one provided.
              *
              * This function will throw a std::invalid_argument if the
              * matrix provided does not contain valid probabilities.
@@ -138,7 +138,7 @@ namespace MPC_POMDP {
             void setTransitionFunction(const T & t);
 
             /**
-             * @brief This function sets the transition function using a Eigen dense matrices.
+             * @brief This function sets the transition function using a Eigen sparse matrices.
              *
              * This function will throw a std::invalid_argument if the
              * matrix provided does not contain valid probabilities.
@@ -367,7 +367,7 @@ namespace MPC_POMDP {
              *
              * @return The transition function for the input action.
              */
-            const Matrix2D & getTransitionFunction(size_t a) const;
+            const SparseMatrix2D & getTransitionFunction(size_t a) const;
 
             /**
              * @brief This function returns the trans_end_index matrix for inspection.
@@ -383,7 +383,7 @@ namespace MPC_POMDP {
              *
              * @return The transition function for the input action.
              */
-            const Matrix2D & getTransitionEndIndex(size_t s1) const;
+            const SparseMatrix2D & getTransitionEndIndex(size_t s1) const;
 
             /**
              * @brief This function returns the rewards matrix for inspection.
@@ -406,7 +406,7 @@ namespace MPC_POMDP {
              *
              * @return The observation function for the input action.
              */
-            const Matrix2D & getObservationFunction(size_t a) const;
+            const SparseMatrix2D & getObservationFunction(size_t a) const;
 
             /**
              * @brief This function returns the termination vector.
@@ -488,11 +488,11 @@ namespace MPC_POMDP {
 	};
 
     template <typename T, typename R, typename OM, typename TER, typename VIO>
-    Model::Model(const size_t s, const size_t a, const size_t o, const T & t, const R & r, 
+    SparseModel::SparseModel(const size_t s, const size_t a, const size_t o, const T & t, const R & r, 
         const OM & om, const TER & ter, const VIO & vio, const double d):
             S(s), A(a), O(o), 
-            transitions_(A, Matrix2D(S, S)), trans_end_index_(S, Matrix2D(A, S)),
-            rewards_(S, A), observations_(A, Matrix2D(S, O)), rand_(Seeder::getSeed()),
+            transitions_(A, SparseMatrix2D(S, S)), trans_end_index_(S, SparseMatrix2D(A, S)),
+            rewards_(S, A), observations_(A, SparseMatrix2D(S, O)), rand_(Seeder::getSeed()),
             terminations_(S, true), violations_(S, false) 
     {
         setDiscount(d);
@@ -504,44 +504,61 @@ namespace MPC_POMDP {
     }
 
     template <typename T>
-    void Model::setTransitionFunction(const T & t) {
+    void SparseModel::setTransitionFunction(const T & t) {
         for ( size_t s = 0; s < S; ++s )
             for ( size_t a = 0; a < A; ++a )
                 if ( !isProbability(S, t[s][a]) )
                     throw std::invalid_argument("Input transition matrix does not contain valid probabilities.");
 
-        for ( size_t s = 0; s < S; ++s )
-            for ( size_t a = 0; a < A; ++a )
-                for ( size_t s1 = 0; s1 < S; ++s1 )
-                    transitions_[a](s, s1) = t[s][a][s1];
+        for ( size_t a = 0; a < A; ++a ) {
+            transitions_[a].setZero();
+
+            for ( size_t s = 0; s < S; ++s )
+                for ( size_t s1 = 0; s1 < S; ++s1 ) {
+                    const double p = t[s][a][s1];
+                    if ( checkDifferentSmall(0.0, p) ) transitions_[a].insert(s, s1) = p;
+            }
+            transitions_[a].makeCompressed();
+        }
 
         updateTransEndIndex();
     }
 
     template <typename R>
-    void Model::setRewardFunction(const R & r) {
+    void SparseModel::setRewardFunction(const R & r) {
         rewards_.setZero();
-        for ( size_t s = 0; s < S; ++s )
-            for ( size_t a = 0; a < A; ++a )
-                for ( size_t s1 = 0; s1 < S; ++s1 )
-                    rewards_(s, a) += r[s][a][s1] * transitions_[a](s, s1);
+        for ( size_t a = 0; a < A; ++a ) {
+            for ( size_t s = 0; s < S; ++s )
+                for ( size_t s1 = 0; s1 < S; ++s1 ) {
+                    const double w = r[s][a][s1];
+                    const double p = transitions_[a].coeff(s, s1);
+                    if ( checkDifferentSmall(0.0, w) && checkDifferentSmall(0.0, p) ) rewards_.coeffRef(s, a) += w * p;
+            }
+        }
+        rewards_.makeCompressed();
     }
 
     template <typename OM>
-    void Model::setObservationFunction(const OM & om) {
+    void SparseModel::setObservationFunction(const OM & om) {
         for ( size_t s1 = 0; s1 < S; ++s1 )
             for ( size_t a = 0; a < A; ++a )
                 if ( !isProbability(O, om[s1][a]) )
                     throw std::invalid_argument("Input observation matrix does not contain valid probabilities.");
 
-        for ( size_t s1 = 0; s1 < S; ++s1 )
-            for ( size_t a = 0; a < A; ++a )
-                for ( size_t o = 0; o < O; ++o )
-                    observations_[a](s1, o) = om[s1][a][o];
+        for ( size_t a = 0; a < A; ++a ) {
+            observations_[a].setZero();
+
+            for ( size_t s1 = 0; s1 < S; ++s1 )
+                for ( size_t o = 0; o < O; ++o ) {
+                    const double p = om[s1][a][o];
+                    if ( checkDifferentSmall(0.0, p) ) observations_[a].insert(s1, o) = p;
+            }
+            observations_[a].makeCompressed();
+        }
     }
 
     template <typename TER>
-    void Model::setTerminationFunction(const TER & ter) {
+    void SparseModel::setTerminationFunction(const TER & ter) {
         terminations_.clear();
         terminations_.resize(S);
         for(size_t s = 0; s < S; ++s) {
@@ -550,7 +567,7 @@ namespace MPC_POMDP {
     }
 
     template <typename VIO>
-    void Model::setViolationFunction(const VIO & vio) {
+    void SparseModel::setViolationFunction(const VIO & vio) {
         violations_.clear();
         violations_.resize(S);
         for(size_t s = 0; s < S; ++s) {
