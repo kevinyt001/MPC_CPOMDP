@@ -1,4 +1,6 @@
 
+// #define EIGEN_USE_MKL_ALL
+
 #include <iostream>
 #include <fstream>
 
@@ -17,6 +19,7 @@ int main() {
 	ifs.open("../input/overtake.POMDP", std::ifstream::in);
 
 	MPC_POMDP::SparseModel overtake = MPC_POMDP::parseCassandraSparse(ifs);
+	// MPC_POMDP::Model overtake = MPC_POMDP::parseCassandra(ifs);
 
 	int horizon = 5;
 	double epsilon = 0.05;

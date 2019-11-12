@@ -26,22 +26,32 @@ if (NOT WIN32)
     )
 endif()
 
-#add_definitions(-O3 -std=c++17 -lnlopt -lm)
+#add_definitions(-O3 -std=c++17 -lnlopt -lm -march=native -fopenmp)
+add_definitions(-O3 -std=c++17 -march=native -fopenmp)
 
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}")
 
-find_package( NLOPT )
-
+find_package(NLOPT REQUIRED)
 if ( NOT NLOPT_FOUND)
-
 	message(STATUS "This project requires the NLOPT library, and will not be compiled.")
 	return()
-
 endif()
 
 include_directories(SYSTEM ${NLOPT_INCLUDE_DIRS})
+
+#find_package(MKL REQUIRED)
+#if ( NOT MKL_FOUND)
+#	message(STATUS "This project requires the MKL library, and will not be compiled.")
+#	return()
+#endif()
+
+#include_directories(SYSTEM ${MKL_INCLUDE_DIRS})
+#add_definitions(-DMKL_LP64 -m64)
+#add_definitions(-DEIGEN_USE_MKL_ALL)
+#add_definitions(-lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core)
+#add_definitions(-liomp5 -lpthread -lm -ldl)
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

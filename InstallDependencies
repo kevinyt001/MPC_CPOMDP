@@ -1,2 +1,16 @@
 install g++7 and set up as default compiler:
 https://gist.github.com/jlblancoc/99521194aba975286c80f93e47966dc5
+
+install MKL
+http://dirk.eddelbuettel.com/blog/2018/04/15/
+https://gist.github.com/pachamaltese/afc4faef2f191b533556f261a46b3aa8
+
+# keys taken from https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo
+cd /tmp
+wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+
+sudo sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list'
+sudo apt-get update && sudo apt-get install intel-mkl-64bit-2019.5-075
+
+https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo

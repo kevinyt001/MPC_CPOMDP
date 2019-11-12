@@ -1,7 +1,5 @@
 #include "Solver.hpp"
 
-#include <time.h>       /* clock_t, clock, CLOCKS_PER_SEC */
-
 namespace MPC_POMDP {
 	POMDPSolver::POMDPSolver(const int h, const double e) :
 	rand_(Seeder::getSeed())

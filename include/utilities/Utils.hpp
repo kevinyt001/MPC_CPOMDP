@@ -22,9 +22,9 @@ namespace MPC_POMDP {
      * @param o The observation registered.
      * @param bRet The output belief.
      */
-    template<typename M>
-    void updateBeliefUnnormalized(const M & model, const Belief & b, 
-        const size_t a, const size_t o, Belief * bRet) {
+    template<typename M, typename B>
+    void updateBeliefUnnormalized(const M & model, const B & b, 
+        const size_t a, const size_t o, B * bRet) {
         
         if (!bRet) return;
 
@@ -61,10 +61,10 @@ namespace MPC_POMDP {
      * @param a The action taken during the transition.
      * @param o The observation registered.
      */
-    template<typename M>
-    Belief updateBeliefUnnormalized(const M & model, const Belief & b, 
+    template<typename M, typename B>
+    B updateBeliefUnnormalized(const M & model, const B & b, 
         const size_t a, const size_t o) {
-        Belief br(model.getS());
+        B br(model.getS());
         updateBeliefUnnormalized(model, b, a, o, &br);
         return br;
     }
@@ -90,9 +90,9 @@ namespace MPC_POMDP {
      * @param o The observation registered.
      * @param bRet The output belief.
      */
-    template<typename M>
-    void updateBelief(const M & model, const Belief & b, const size_t a, 
-        const size_t o, Belief * bRet) {
+    template<typename M, typename B>
+    void updateBelief(const M & model, const B & b, const size_t a, 
+        const size_t o, B * bRet) {
         if (!bRet) return;
 
         updateBeliefUnnormalized(model, b, a, o, bRet);
@@ -121,10 +121,10 @@ namespace MPC_POMDP {
      * @param a The action taken during the transition.
      * @param o The observation registered.
      */
-    template<typename M>
-    Belief updateBelief(const M & model, const Belief & b, const size_t a, 
+    template<typename M, typename B>
+    B updateBelief(const M & model, const B & b, const size_t a, 
         const size_t o) {
-        Belief br(model.getS());
+        B br(model.getS());
         updateBelief(model, b, a, o, &br);
         return br;
     }    

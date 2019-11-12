@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <time.h>       /* clock_t, clock, CLOCKS_PER_SEC */
 #include <nlopt.hpp>
 
 #include "Model.hpp"
@@ -121,7 +122,7 @@ namespace MPC_POMDP {
 
         OptimizerData<M> OD = {&belief, model, epsilon_, horizon_};
         
-        nlopt::opt opt(nlopt::LD_SLSQP, A*horizon_);
+        nlopt::opt opt(nlopt::LN_COBYLA, A*horizon_);
         opt.set_min_objective(cost<M>, &OD);
         opt.add_inequality_constraint(ineq_constraint<M>, &OD, 0.0);
 
@@ -142,9 +143,9 @@ namespace MPC_POMDP {
         opt.add_equality_mconstraint(eq_constraint_vector<M>, &eqcon_data, tol);
 
         // Set termination
-        // opt.set_ftol_abs(0.1);
-        // opt.set_xtol_rel(0.1);
-        // opt.set_stopval(190.0);
+        // opt.set_ftol_abs(0.01);
+        // opt.set_xtol_rel(0.01);
+        opt.set_stopval(192.0);
 
         double tot_cost = 0;
 
@@ -219,6 +220,7 @@ namespace MPC_POMDP {
 
         double cost = 0;
         Belief predict_belief = *b;
+        // clock_t t = clock();
         for (int i = 0; i < h; ++i) {
             // Eigen::Map<Vector> g(gamma.data()+i*h, m.getA());
             Vector g(m.getA());
@@ -248,6 +250,9 @@ namespace MPC_POMDP {
                 predict_belief(j) = g.transpose() * m.getTransitionEndIndex(j) * temp;
             }           
         }
+
+        // t = clock() - t;
+        // std::cout << "Time: " << (double) t/CLOCKS_PER_SEC << std::endl;
 
         // std::cout << cost << std::endl;
         // for (size_t i = 0; i < h*m.getA(); ++i) {
