@@ -89,6 +89,8 @@ int main() {
 		}
 	}
 
+	ofs.close();
+
 	// Check trans_end_index_ is properly set up
 
 	return 0;

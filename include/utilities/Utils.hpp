@@ -32,17 +32,16 @@ namespace MPC_POMDP {
 
         br = model.getObservationFunction(a).col(o).cwiseProduct((b.transpose() * model.getTransitionFunction(a)).transpose());
 
-        // Iteratively update the belief
-        /* 
-        const size_t S = model.getS();
-        for ( size_t s1 = 0; s1 < S; ++s1 ) {
-            double sum = 0.0;
-            for ( size_t s = 0; s < S; ++s )
-                sum += model.getTransitionProbability(s,a,s1) * b[s];
+        // Iteratively update the belief         
+        // const size_t S = model.getS();
+        // for ( size_t s1 = 0; s1 < S; ++s1 ) {
+        //     double sum = 0.0;
+        //     for ( size_t s = 0; s < S; ++s )
+        //         sum += model.getTransitionProbability(s,a,s1) * b[s];
 
-            br[s1] = model.getObservationProbability(s1,a,o) * sum;
-        }
-        */
+        //     br[s1] = model.getObservationProbability(s1,a,o) * sum;
+        // }
+        
     }
 
     /**

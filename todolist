@@ -1,0 +1,7 @@
+Todo
+Add sparse belief implementation by operator overloading (investigate prune, sparseView, makecompressed etc)
+
+Derive analytical gradient
+
+Use ipopt or snopt with numerical gradient or analytical gradient
+

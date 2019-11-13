@@ -2,6 +2,7 @@
 #define MPC_POMDP_SOLVER_HEADER_FILE
 
 #include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <time.h>       /* clock_t, clock, CLOCKS_PER_SEC */
 #include <nlopt.hpp>
@@ -108,6 +109,12 @@ namespace MPC_POMDP {
 
             template<typename M>
             static void eq_constraint_vector(unsigned int m, double* result, unsigned int n, const double* gamma, double* grad, void* cdata);
+
+            template<typename M>
+            static void ineq_constraint_vector(unsigned int m, double* result, unsigned int n, const double* gamma, double* grad, void* cdata);
+
+            template<typename M>
+            static void ineq_constraint_vector_2(unsigned int m, double* result, unsigned int n, const double* gamma, double* grad, void* cdata);
 	};
 
     template<typename M>
@@ -116,13 +123,16 @@ namespace MPC_POMDP {
         A = model.getA();
         O = model.getO();
 
+        std::ofstream ofs;
+        ofs.open("test_results.POMDP", std::ofstream::out | std::ofstream::trunc);
+
         int timestep = 0;
 
         size_t curr_state = init_state;
 
         OptimizerData<M> OD = {&belief, model, epsilon_, horizon_};
-        
-        nlopt::opt opt(nlopt::LN_COBYLA, A*horizon_);
+
+        nlopt::opt opt(nlopt::LD_SLSQP, A*horizon_);
         opt.set_min_objective(cost<M>, &OD);
         opt.add_inequality_constraint(ineq_constraint<M>, &OD, 0.0);
 
@@ -139,13 +149,15 @@ namespace MPC_POMDP {
 
         // Add Vector Valued Equality Constraints
         EqConData<M> eqcon_data({model, horizon_, 0});
-        std::vector<double> tol(horizon_, equalToleranceGeneral);
-        opt.add_equality_mconstraint(eq_constraint_vector<M>, &eqcon_data, tol);
+        std::vector<double> tol(horizon_, equalToleranceSmall);
+        // opt.add_equality_mconstraint(eq_constraint_vector<M>, &eqcon_data, tol);
+        opt.add_inequality_mconstraint(ineq_constraint_vector<M>, &eqcon_data, tol);
+        opt.add_inequality_mconstraint(ineq_constraint_vector_2<M>, &eqcon_data, tol);
 
         // Set termination
-        // opt.set_ftol_abs(0.01);
-        // opt.set_xtol_rel(0.01);
-        opt.set_stopval(192.0);
+        opt.set_ftol_abs(0.0001);
+        // opt.set_xtol_abs(0.0000001);
+        // opt.set_stopval(192.7);
 
         double tot_cost = 0;
 
@@ -155,7 +167,7 @@ namespace MPC_POMDP {
 
             clock_t t = clock();
 
-            std::cout << "Optionmation Starts" << std::endl;
+            std::cout << "Optimization Starts" << std::endl;
 
             try{
                 // nlopt::result result = opt.optimize(gamma, cost_temp);
@@ -170,12 +182,15 @@ namespace MPC_POMDP {
             std::cout << "Computational time for this step is : " << (double) t/CLOCKS_PER_SEC << std::endl;
             std::cout << "Clock per seconds is : " << CLOCKS_PER_SEC << std::endl;
 
-            std::cout << "Step: " << timestep << std::endl;
-            std::cout << "Cost: " << cost_temp << std::endl;
+            // std::cout << "Step: " << timestep << std::endl;
+            // std::cout << "Cost: " << cost_temp << std::endl;
+            ofs << "Step: " << timestep << std::endl;
+            ofs << "Cost: " << cost_temp << std::endl;
             for (size_t i = 0; i < horizon_*A; ++i) {
-                std::cout << gamma[i] << " ";
+                ofs << gamma[i] << " ";
             }
-            std::cout << std::endl;
+            ofs << std::endl;
+            ofs.close();
             // std::cout << "Number of evaluations: " << count << std::endl;
 
             tot_cost += cost_temp;
@@ -187,6 +202,14 @@ namespace MPC_POMDP {
             Belief belief_temp(S);
             updateBelief(model, belief, action, std::get<1>(SOR), &belief_temp);
             belief = belief_temp;
+
+            ofs.open("test_results.POMDP", std::ofstream::out | std::ofstream::app);
+            ofs << "Belief: " << std::endl;
+            for(size_t i = 0; i < S; i ++) {
+                if(checkDifferentSmall(belief(i), 0.0))
+                    ofs << "S: " << i << " B: " << belief(i) << std::endl;
+            }
+            ofs << std::endl;
 
             curr_state = std::get<0>(SOR);
 
@@ -202,10 +225,10 @@ namespace MPC_POMDP {
             std::vector<double> temp_gamma = gamma;
             std::vector<double> temp;
             for(size_t i = 0; i < gamma.size(); ++i) {
-                temp_gamma[i] = gamma[i] + std::max(gamma[i]*0.05, 0.01);
+                temp_gamma[i] = std::min(gamma[i] + std::max(gamma[i]*0.05, 0.01), 1.0);
                 double adj1 = temp_gamma[i] - gamma[i];
                 double temp1 = cost<M>(temp_gamma, temp, fdata);
-                temp_gamma[i] = std::max(gamma[i] - std::max(gamma[i]*0.05, 0.01), equalToleranceSmall);
+                temp_gamma[i] = std::max(gamma[i] - std::max(gamma[i]*0.05, 0.01), 0.0);
                 double adj2 = temp_gamma[i] - gamma[i];
                 double temp2 = cost<M>(temp_gamma, temp, fdata);
 
@@ -242,13 +265,22 @@ namespace MPC_POMDP {
             // belief.transpose: 1*S; rewards_: S*A; g(gamma): A*1
             cost += predict_belief.transpose() * m.getRewardFunction() * g;
 
+            // Update belief
+            if(i == h) break;
             Belief temp = predict_belief;
 
-            // Update belief for each state
-            for (size_t j = 0; j < m.getS(); ++j) {
-                // g.transpose: 1*A; trans_end_index_(j): A*S; belief: S*1
-                predict_belief(j) = g.transpose() * m.getTransitionEndIndex(j) * temp;
-            }           
+            //Update together
+            predict_belief.setZero();
+            for(size_t j = 0; j < m.getA(); ++j) {
+                predict_belief.noalias() += Eigen::VectorXd(g(j) * m.getTransitionFunction(j).transpose() * temp);
+            }
+            // std::cout << predict_belief << std::endl;
+
+            //Update Iteratively
+            // for (size_t j = 0; j < m.getS(); ++j) {
+            //     // g.transpose: 1*A; trans_end_index_(j): A*S; belief: S*1
+            //     predict_belief(j) = g.transpose() * m.getTransitionEndIndex(j) * temp;
+            // }
         }
 
         // t = clock() - t;
@@ -271,10 +303,10 @@ namespace MPC_POMDP {
             std::vector<double> temp_gamma = gamma;
             std::vector<double> temp;
             for(size_t i = 0; i < gamma.size(); ++i) {
-                temp_gamma[i] = gamma[i] + std::max(gamma[i]*0.05, 0.01);
+                temp_gamma[i] = std::min(gamma[i] + std::max(gamma[i]*0.05, 0.01), 1.0);
                 double adj1 = temp_gamma[i] - gamma[i];
                 double temp1 = ineq_constraint<M>(temp_gamma, temp, cdata);
-                temp_gamma[i] = std::max(gamma[i] - std::max(gamma[i]*0.05, 0.01), equalToleranceSmall);
+                temp_gamma[i] = std::max(gamma[i] - std::max(gamma[i]*0.05, 0.01), 0.0);
                 double adj2 = temp_gamma[i] - gamma[i];
                 double temp2 = ineq_constraint<M>(temp_gamma, temp, cdata);
 
@@ -316,11 +348,17 @@ namespace MPC_POMDP {
             }
             */
 
-            // Update belief for each state
-            for (size_t j = 0; j < m.getS(); ++j) {
-                // g.transpose: 1*A; trans_end_index_(j): A*S; belief: S*1
-                predict_belief(j) = g.transpose() * m.getTransitionEndIndex(j) * temp;
+            // Update belief 
+            //Update together
+            predict_belief.setZero();
+            for(size_t j = 0; j < m.getA(); ++j) {
+                predict_belief.noalias() += Eigen::VectorXd(g(j) * m.getTransitionFunction(j).transpose() * temp);
             }
+            // Update iteratively
+            // for (size_t j = 0; j < m.getS(); ++j) {
+            //     // g.transpose: 1*A; trans_end_index_(j): A*S; belief: S*1
+            //     predict_belief(j) = g.transpose() * m.getTransitionEndIndex(j) * temp;
+            // }
 
             for (size_t j = 0; j < m.getS(); ++j) {
                 if(checkDifferentSmall(predict_belief(j), 0) && m.isViolation(j)) {
@@ -377,6 +415,58 @@ namespace MPC_POMDP {
                 res += gamma[N*m.getA()+i];
             }
             result[N] = res - 1.0;
+        }
+
+        return;
+    }
+
+    template<typename M>
+    void POMDPSolver::ineq_constraint_vector(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
+        EqConData<M> *ed = reinterpret_cast<EqConData<M>*>(cdata);
+        const M & m = ed->model; int h = ed->horizon;
+
+        if (grad) {
+            for(size_t i = 0; i < ms; ++i) {
+                for(size_t j = 0; j < n; ++j) {
+                    grad[i*n+j] = 0;
+                    if(j >= i*h && j < (i+1)*h)
+                        grad[i*n+j] = 1;
+                }
+            }
+        }
+
+        for(int N = 0; N < h; ++N) {
+            double res = 0;
+            for(size_t i = 0; i < m.getA(); ++i) {
+                res += gamma[N*m.getA()+i];
+            }
+            result[N] = res - 1.0;
+        }
+
+        return;
+    }
+
+    template<typename M>
+    void POMDPSolver::ineq_constraint_vector_2(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
+        EqConData<M> *ed = reinterpret_cast<EqConData<M>*>(cdata);
+        const M & m = ed->model; int h = ed->horizon;
+
+        if (grad) {
+            for(size_t i = 0; i < ms; ++i) {
+                for(size_t j = 0; j < n; ++j) {
+                    grad[i*n+j] = 0;
+                    if(j >= i*h && j < (i+1)*h)
+                        grad[i*n+j] = -1;
+                }
+            }
+        }
+
+        for(int N = 0; N < h; ++N) {
+            double res = 0;
+            for(size_t i = 0; i < m.getA(); ++i) {
+                res += gamma[N*m.getA()+i];
+            }
+            result[N] = -res + 1.0;
         }
 
         return;
