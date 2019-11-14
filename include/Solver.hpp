@@ -220,16 +220,17 @@ namespace MPC_POMDP {
             ofs << "A: " << action << " S: " << std::get<0>(SOR) << " O: " << std::get<1>(SOR) << std::endl;
             
             ofs << "Belief: " << std::endl;
-            for(size_t i = 0; i < S; i ++) {
-                double temp_b = 0;
-                if constexpr(std::is_same_v<B, Belief>) {
-                    temp_b = belief(i);
+            if constexpr(std::is_same_v<B, Belief>) {
+                for(size_t i = 0; i < S; i ++) {
+                    if(checkDifferentSmall(belief(i), 0.0))
+                        ofs << "S: " << i << " B: " << belief(i) << std::endl;
                 }
-                else if constexpr(std::is_same_v<B, SparseBelief>) {
-                    temp_b = belief.coeff(i);
+            }
+            else if constexpr(std::is_same_v<B, SparseBelief>) {
+                for(size_t i = 0; i < S; i ++) {
+                    if(checkDifferentSmall(belief.coeff(i), 0.0))
+                        ofs << "S: " << i << " B: " << belief.coeff(i) << std::endl;
                 }
-                if(checkDifferentSmall(temp_b, 0.0))
-                    ofs << "S: " << i << " B: " << temp_b << std::endl;
             }
             ofs << std::endl;
 
