@@ -5,8 +5,8 @@ namespace MPC_POMDP{
 	Model::Model(const size_t s, const size_t a, const size_t o, const double discount):
             S(s), A(a), O(o), discount_(discount), 
             transitions_(A, Matrix2D(S, S)), trans_end_index_(S, Matrix2D(A, S)), 
-            rewards_(S, A), observations_(A, Matrix2D(S, O)), rand_(Seeder::getSeed()),
-            terminations_(S, true), violations_(S, false)
+            rewards_(S, A), observations_(A, Matrix2D(S, O)),
+            terminations_(S, true), violations_(S, false), rand_(Seeder::getSeed())
 	{
 		for (size_t a = 0; a < A; a++)
 			transitions_[a].setIdentity();
@@ -25,8 +25,8 @@ namespace MPC_POMDP{
 	Model::Model(const Model& model):
 			S(model.getS()), A(model.getA()), O(model.getO()), 
             transitions_(A, Matrix2D(S, S)), trans_end_index_(S, Matrix2D(A, S)), 
-            rewards_(S, A), observations_(A, Matrix2D(S, O)), rand_(Seeder::getSeed()),
-            terminations_(S, true), violations_(S, false)
+            rewards_(S, A), observations_(A, Matrix2D(S, O)), 
+            terminations_(S, true), violations_(S, false), rand_(Seeder::getSeed())
 	{
 		setDiscount(model.getDiscount());
 		rewards_.setZero();
@@ -61,11 +61,12 @@ namespace MPC_POMDP{
     	RewardMatrix && r, ObservationMatrix && om, std::vector<bool>& ter, 
         std::vector<bool>& vio, const double d):
     		S(s), A(a), O(o), discount_(d), 
-    		transitions_(std::move(t)), rewards_(std::move(r)), observations_(om), 
-    		trans_end_index_(S, Matrix2D(A, S)), rand_(Seeder::getSeed()),
-            terminations_(ter), violations_(vio) {
-                updateTransEndIndex();
-            }
+    		transitions_(std::move(t)), trans_end_index_(S, Matrix2D(A, S)), 
+            rewards_(std::move(r)), observations_(om), 
+            terminations_(ter), violations_(vio), rand_(Seeder::getSeed()) 
+    {
+        updateTransEndIndex();
+    }
 
     void Model::setTransitionFunction(const TransitionMatrix & t) {
         for ( size_t a = 0; a < A; ++a ) {
@@ -121,7 +122,7 @@ namespace MPC_POMDP{
 		return transitions_[a](s, s1);
 	}
 
-	double Model::getExpectedReward(const size_t s, const size_t a, const size_t s1) const {
+	double Model::getExpectedReward(const size_t s, const size_t a, const size_t) const {
 		return rewards_(s, a);
 	}
 

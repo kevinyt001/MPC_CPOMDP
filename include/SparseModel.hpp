@@ -465,14 +465,13 @@ namespace MPC_POMDP {
             // Contain the transition probability from s0 to s1 by action a
             // with transitions_[a](s0, s1)
             TransitionMatrix transitions_;
+            // Restructure the transition matrix so that it is indexed by end state
+            // i.e. trans_end_index[s1](A, s0) with size S*A*S
+            TransitionMatrix trans_end_index_; 
             // Contain the expected reward at state s with action a
             RewardMatrix rewards_; 
             // Observation Matrix for each action is a probability distribution
             ObservationMatrix observations_; 
-            // Belief beliefs_;
-            // Restructure the transition matrix so that it is indexed by end state
-            // i.e. trans_end_index[s1](A, s0) with size S*A*S
-            TransitionMatrix trans_end_index_; 
             // The termianal states will have value true with others having false
             std::vector<bool> terminations_;
             // The constraints violation states have value true, 
@@ -492,8 +491,8 @@ namespace MPC_POMDP {
         const OM & om, const TER & ter, const VIO & vio, const double d):
             S(s), A(a), O(o), 
             transitions_(A, SparseMatrix2D(S, S)), trans_end_index_(S, SparseMatrix2D(A, S)),
-            rewards_(S, A), observations_(A, SparseMatrix2D(S, O)), rand_(Seeder::getSeed()),
-            terminations_(S, true), violations_(S, false) 
+            rewards_(S, A), observations_(A, SparseMatrix2D(S, O)),
+            terminations_(S, true), violations_(S, false), rand_(Seeder::getSeed())
     {
         setDiscount(d);
         setTransitionFunction(t);

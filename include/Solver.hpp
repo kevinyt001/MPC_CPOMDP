@@ -180,8 +180,6 @@ namespace MPC_POMDP {
 
             clock_t t = clock();
 
-            std::cout << "Optimization Starts" << std::endl;
-
             try{
                 // nlopt::result result = opt.optimize(gamma, cost_temp);
                 opt.optimize(gamma, cost_temp);

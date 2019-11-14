@@ -8,8 +8,8 @@ namespace MPC_POMDP{
 	SparseModel::SparseModel(const size_t s, const size_t a, const size_t o, const double discount):
             S(s), A(a), O(o), discount_(discount), 
             transitions_(A, SparseMatrix2D(S, S)), trans_end_index_(S, SparseMatrix2D(A, S)), 
-            rewards_(S, A), observations_(A, SparseMatrix2D(S, O)), rand_(Seeder::getSeed()),
-            terminations_(S, true), violations_(S, false)
+            rewards_(S, A), observations_(A, SparseMatrix2D(S, O)),
+            terminations_(S, true), violations_(S, false), rand_(Seeder::getSeed())
 	{
 		for (size_t a = 0; a < A; a++)
 			transitions_[a].setIdentity();
@@ -29,8 +29,8 @@ namespace MPC_POMDP{
 	SparseModel::SparseModel(const SparseModel& model):
 			S(model.getS()), A(model.getA()), O(model.getO()), 
             transitions_(A, SparseMatrix2D(S, S)), trans_end_index_(S, SparseMatrix2D(A, S)), 
-            rewards_(S, A), observations_(A, SparseMatrix2D(S, O)), rand_(Seeder::getSeed()),
-            terminations_(S, true), violations_(S, false)
+            rewards_(S, A), observations_(A, SparseMatrix2D(S, O)),
+            terminations_(S, true), violations_(S, false), rand_(Seeder::getSeed())
 	{
 		setDiscount(model.getDiscount());
 		rewards_.setZero();
@@ -79,11 +79,12 @@ namespace MPC_POMDP{
     	RewardMatrix && r, ObservationMatrix && om, std::vector<bool>& ter, 
         std::vector<bool>& vio, const double d):
     		S(s), A(a), O(o), discount_(d), 
-    		transitions_(std::move(t)), rewards_(std::move(r)), observations_(om), 
-    		trans_end_index_(S, SparseMatrix2D(A, S)), rand_(Seeder::getSeed()),
-            terminations_(ter), violations_(vio) {
-                updateTransEndIndex();
-            }
+    		transitions_(std::move(t)), trans_end_index_(S, SparseMatrix2D(A, S)),
+    		rewards_(std::move(r)), observations_(om),
+            terminations_(ter), violations_(vio), rand_(Seeder::getSeed()) 
+    {
+        updateTransEndIndex();
+    }
 
     void SparseModel::setTransitionFunction(const TransitionMatrix & t) {
         // Eigen sparse does not implement minCoeff so we can't check for negatives.
@@ -143,7 +144,7 @@ namespace MPC_POMDP{
 		return transitions_[a].coeff(s, s1);
 	}
 
-	double SparseModel::getExpectedReward(const size_t s, const size_t a, const size_t s1) const {
+	double SparseModel::getExpectedReward(const size_t s, const size_t a, const size_t) const {
 		return rewards_.coeff(s, a);
 	}
 
