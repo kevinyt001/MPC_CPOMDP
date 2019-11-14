@@ -83,7 +83,7 @@ namespace MPC_POMDP {
              * @param om The external observations container.
              * @param ter The external terminations container.
              * @param vio The external violations container.
-             * @param d  The discount factor for the POMDP.
+             * @param d  The discount factor for the POMDP model.
              */
             template <typename T, typename R, typename OM, typename TER, typename VIO>
             Model(size_t s, size_t a, size_t o, const T & t, const R & r, 
@@ -106,6 +106,8 @@ namespace MPC_POMDP {
              * @param t  The transition function to be used in the Model.
              * @param r  The reward function to be used in the Model.
              * @param om The observation function to be used in the Model.
+             * @param ter The termination function to be used in the Model.
+             * @param vio The violation function to be used in the Model.
              * @param d  The discount factor for the Model.
              */
             Model(NoCheck, size_t s, size_t a, size_t o, TransitionMatrix && t, 
@@ -123,7 +125,7 @@ namespace MPC_POMDP {
              * The container needs to support data access through
              * operator[]. In addition, the dimensions of the container
              * must match the ones provided as arguments (for three
-             * dimensions: S,A,S).
+             * dimensions: S0, A, S1).
              *
              * This is important, as this function DOES NOT perform any
              * size checks on the external container.
@@ -144,7 +146,7 @@ namespace MPC_POMDP {
              * matrix provided does not contain valid probabilities.
              *
              * The dimensions of the container must match the ones provided
-             * as arguments (for three dimensions: A, S, S). BE CAREFUL.
+             * as arguments (for three dimensions: A, S0, S1). BE CAREFUL.
              * The sparse matrices MUST be SxS, while the std::vector
              * containing them MUST represent A.
              *
@@ -160,8 +162,8 @@ namespace MPC_POMDP {
              *
              * The container needs to support data access through
              * operator[]. In addition, the dimensions of the containers
-             * must match the ones provided as arguments (for three
-             * dimensions: S,A,S).
+             * must match the ones provided as arguments (for two
+             * dimensions: S0, A).
              *
              * This is important, as this function DOES NOT perform any
              * size checks on the external containers.
@@ -179,7 +181,7 @@ namespace MPC_POMDP {
              * @brief This function replaces the reward function with the one provided.
              *
              * The dimensions of the container must match the ones provided
-             * as arguments (for two dimensions: S, A). BE CAREFUL.
+             * as arguments (for two dimensions: S0, A). BE CAREFUL.
              *
              * This function does DOES NOT perform any size checks on the
              * input.
@@ -194,7 +196,7 @@ namespace MPC_POMDP {
              * The container needs to support data access through
              * operator[]. In addition, the dimensions of the
              * containers must match the ones provided as arguments
-             * (for three dimensions: s,a,o, in this order).
+             * (for three dimensions: s1, a, o, in this order).
              *
              * This is important, as this function DOES NOT perform
              * any size checks on the external containers.
@@ -212,7 +214,7 @@ namespace MPC_POMDP {
              * @brief This function replaces the Model observation function with the one provided.
              *
              * The dimensions of the container must match the ones provided
-             * as arguments (for three dimensions: A, S, O). BE CAREFUL.
+             * as arguments (for three dimensions: A, S1, O). BE CAREFUL.
              *
              * This function does DOES NOT perform any size checks on the
              * input.
@@ -232,7 +234,7 @@ namespace MPC_POMDP {
              * This is important, as this function DOES NOT perform
              * any size checks on the external containers.
              *
-             * Internal values of the container will be converted to double,
+             * Internal values of the container will be converted to bool,
              * so these conversions must be possible.
              *
              * @tparam TER The external terminations container type.
@@ -247,7 +249,7 @@ namespace MPC_POMDP {
              * The dimensions of the container must match the ones provided
              * as arguments (for one dimensions: S). BE CAREFUL.
              *
-             * This function does will throw an invalid argument if the size is not correct.
+             * This function does will throw an std::invalid_argument if the size is not correct.
              *
              * @param ter The external termination container.
              */
@@ -264,7 +266,7 @@ namespace MPC_POMDP {
              * This is important, as this function DOES NOT perform
              * any size checks on the external containers.
              *
-             * Internal values of the container will be converted to double,
+             * Internal values of the container will be converted to bool,
              * so these conversions must be possible.
              *
              * @tparam VIO The external violations container type.
@@ -279,7 +281,7 @@ namespace MPC_POMDP {
              * The dimensions of the container must match the ones provided
              * as arguments (for one dimensions: S). BE CAREFUL.
              *
-             * This function does will throw an invalid argument if the size is not correct.
+             * This function does will throw an std::invalid_argument if the size is not correct.
              *
              * @param vio The external violation container.
              */
@@ -333,12 +335,15 @@ namespace MPC_POMDP {
 
             /**
              * @brief This function returns the stored expected reward for the specified transition.
+             * 
+             * s1 is actually not used because we only store the expected reward at initial state
+             * taking specific actions.
              *
              * @param s The initial state of the transition.
              * @param a The action performed in the transition.
              * @param s1 The final state of the transition.
              *
-             * @return The expected reward of the specified transition.
+             * @return The expected reward of state s taking action a.
              */
         	double getExpectedReward(size_t s, size_t a, size_t s1) const;
 
@@ -381,7 +386,7 @@ namespace MPC_POMDP {
              *
              * @param s1 The end state requested.
              *
-             * @return The transition function for the input action.
+             * @return The transition function for the input end state.
              */
             const Matrix2D & getTransitionEndIndex(size_t s1) const;
 
@@ -416,9 +421,9 @@ namespace MPC_POMDP {
             const std::vector<bool> & getTerminationFunction() const;
             
             /**
-             * @brief This function returns the termination vector.
+             * @brief This function returns the violation vector.
              *
-             * @return The termination vector.
+             * @return The violation vector.
              */
             const std::vector<bool> & getViolationFunction() const;
 
@@ -435,6 +440,7 @@ namespace MPC_POMDP {
              * @return True if the state violate constraints.
              */            
             bool isViolation(const size_t s) const;
+            
             /**
             * @brief This function propogates the POMDP for the specified state action pair.
             *
@@ -465,17 +471,21 @@ namespace MPC_POMDP {
             // Contain the transition probability from s0 to s1 by action a
             // with transitions_[a](s0, s1)
             TransitionMatrix transitions_;
+            
             // Restructure the transition matrix so that it is indexed by end state
             // i.e. trans_end_index[s1](A, s0) with size S*A*S
             TransitionMatrix trans_end_index_; 
+            
             // Contain the expected reward at state s with action a
             RewardMatrix rewards_; 
+            
             // Observation Matrix for each action is a probability distribution
             ObservationMatrix observations_; 
+            
             // The termianal states will have value true with others having false
             std::vector<bool> terminations_;
-            // The constraints violation states have value true, 
-            // and violation free states having false
+            
+            // The constraints violation states have value true, and violation free states having false
             std::vector<bool> violations_;
 
             mutable RandomEngine rand_;

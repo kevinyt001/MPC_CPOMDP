@@ -40,7 +40,7 @@ namespace MPC_POMDP {
              * Any problems during parsing result in an std::runtime_error.
              *
              * The output is returned as a set of values which if needed can be
-             * used to build an MDP::Model.
+             * used to build an MDPModel.
              *
              * No checks are done here regarding the consistency of the read
              * data (transition probabilities, etc).
@@ -56,12 +56,13 @@ namespace MPC_POMDP {
              *
              * this function only parses for information regarding an pomdp, so
              * number of states, number of actions, number of observations,
-             * discount and transition/reward/observation functions.
+             * discount and transition/reward/observation functions as well as
+             * termination/violation functions.
              *
              * Any problems during parsing result in an std::runtime_error.
              *
              * The output is returned as a set of values which if needed can be
-             * used to build an POMDP::Model.
+             * used to build an MPC_POMDP::Model or MPC_POMDP::SparseModel.
              *
              * No checks are done here regarding the consistency of the read
              * data (transition probabilities, etc).

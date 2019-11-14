@@ -16,6 +16,8 @@ namespace MPC_POMDP {
      * This function will not normalize the output, nor is guaranteed
      * to return a non-completely-zero vector.
      *
+     * @tparam M Type of the model (dense/sparse)
+     * @tparam B Type of the belief (dense/spare)
      * @param model The model used to update the belief.
      * @param b The old belief.
      * @param a The action taken during the transition.
@@ -55,6 +57,8 @@ namespace MPC_POMDP {
      * This function will not normalize the output, nor is guaranteed
      * to return a non-completely-zero vector.
      *
+     * @tparam M Type of the model (dense/sparse)
+     * @tparam B Type of the belief (dense/spare)
      * @param model The model used to update the belief.
      * @param b The old belief.
      * @param a The action taken during the transition.
@@ -83,6 +87,8 @@ namespace MPC_POMDP {
      * If that cannot be guaranteed, use the updateBeliefUnnormalized()
      * function and do the normalization yourself (and check for it).
      *
+     * @tparam M Type of the model (dense/sparse)
+     * @tparam B Type of the belief (dense/spare)
      * @param model The model used to update the belief.
      * @param b The old belief.
      * @param a The action taken during the transition.
@@ -115,6 +121,8 @@ namespace MPC_POMDP {
      * If that cannot be guaranteed, use the updateBeliefUnnormalized()
      * function and do the normalization yourself (and check for it).
      *
+     * @tparam M Type of the model (dense/sparse)
+     * @tparam B Type of the belief (dense/spare)
      * @param model The model used to update the belief.
      * @param b The old belief.
      * @param a The action taken during the transition.
