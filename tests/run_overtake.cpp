@@ -25,10 +25,10 @@ int main() {
 	double epsilon = 0.05;
 	MPC_POMDP::POMDPSolver solver(horizon, epsilon);
 
+	size_t init_state = 328;
+	// MPC_POMDP::SparseBelief belief(overtake.getS());
 	MPC_POMDP::Belief belief(overtake.getS());
 	belief.setZero();
-
-	size_t init_state = 328;
 
 	belief(init_state) = 1.0;
 

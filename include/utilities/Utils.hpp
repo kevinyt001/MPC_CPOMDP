@@ -29,7 +29,7 @@ namespace MPC_POMDP {
         if (!bRet) return;
 
         auto & br = *bRet;
-
+        
         br = model.getObservationFunction(a).col(o).cwiseProduct((b.transpose() * model.getTransitionFunction(a)).transpose());
 
         // Iteratively update the belief         
