@@ -84,8 +84,8 @@ namespace MPC_POMDP {
              * @param init_state The initial state to start propagation.
              * @param belief Dense vector of the initial state probability pdistribution.
              */
-            template<typename M>
-            void operator()(const M & model, const size_t init_state, Belief& belief);
+            template<typename M, typename B>
+            void operator()(const M & model, const size_t init_state, B& belief);
 
         private:
         	size_t S, A, O;
@@ -94,10 +94,10 @@ namespace MPC_POMDP {
 
         	mutable RandomEngine rand_;
 
-            template<typename M>
+            template<typename M, typename B>
         	static double cost(const std::vector<double> &gamma, std::vector<double> &grad, void* fdata);
 
-            template<typename M>
+            template<typename M, typename B>
         	static double ineq_con(const std::vector<double> &gamma, std::vector<double> &grad, void* cdata);
 
             template<typename M>
@@ -112,10 +112,10 @@ namespace MPC_POMDP {
             template<typename M>
             static void ineq_con_vec_2(unsigned int m, double* result, unsigned int n, const double* gamma, double* grad, void* cdata);
 
-            template<typename M>
+            template<typename M, typename B>
             struct OptimizerData {
                 const M & model;
-                const Belief & belief;
+                const B & belief;
                 double epsilon;
                 int horizon;
             };
@@ -128,8 +128,8 @@ namespace MPC_POMDP {
             };
 	};
 
-    template<typename M>
-    void POMDPSolver::operator()(const M & model, const size_t init_state, Belief& belief) {
+    template<typename M, typename B>
+    void POMDPSolver::operator()(const M & model, const size_t init_state, B& belief) {
         S = model.getS();
         A = model.getA();
         O = model.getO();
@@ -141,11 +141,11 @@ namespace MPC_POMDP {
 
         size_t curr_state = init_state;
 
-        OptimizerData<M> OD = {model, belief, epsilon_, horizon_};
+        OptimizerData<M, B> OD = {model, belief, epsilon_, horizon_};
 
         nlopt::opt opt(nlopt::LD_SLSQP, A*horizon_);
-        opt.set_min_objective(cost<M>, &OD);
-        opt.add_inequality_constraint(ineq_con<M>, &OD, 0.0);
+        opt.set_min_objective(cost<M, B>, &OD);
+        opt.add_inequality_constraint(ineq_con<M, B>, &OD, 0.0);
 
         // Set lower bound and upper bound on gamma
         opt.set_lower_bounds(0.0);
@@ -210,7 +210,7 @@ namespace MPC_POMDP {
 
             std::tuple<size_t, size_t, double> SOR = model.propagateSOR(curr_state, action);
 
-            Belief belief_temp(S);
+            B belief_temp(S);
             updateBelief(model, belief, action, std::get<1>(SOR), &belief_temp);
             belief = belief_temp;
 
@@ -218,8 +218,15 @@ namespace MPC_POMDP {
             
             ofs << "Belief: " << std::endl;
             for(size_t i = 0; i < S; i ++) {
-                if(checkDifferentSmall(belief(i), 0.0))
-                    ofs << "S: " << i << " B: " << belief(i) << std::endl;
+                double temp_b = 0;
+                if constexpr(std::is_same_v<B, Belief>) {
+                    temp_b = belief(i);
+                }
+                else if constexpr(std::is_same_v<B, SparseBelief>) {
+                    temp_b = belief.coeff(i);
+                }
+                if(checkDifferentSmall(temp_b, 0.0))
+                    ofs << "S: " << i << " B: " << temp_b << std::endl;
             }
             ofs << std::endl;
 
@@ -232,7 +239,7 @@ namespace MPC_POMDP {
         return;
     }
 
-    template<typename M>
+    template<typename M, typename B>
     double POMDPSolver::cost(const std::vector<double> &gamma, std::vector<double> &grad, 
         void* fdata) {
         if (!grad.empty()) {
@@ -242,10 +249,10 @@ namespace MPC_POMDP {
             for(size_t i = 0; i < gamma.size(); ++i) {
                 temp_gamma[i] = std::min(gamma[i] + std::max(gamma[i]*0.05, 0.01), 1.0);
                 double adj1 = temp_gamma[i] - gamma[i];
-                double temp1 = cost<M>(temp_gamma, temp, fdata);
+                double temp1 = cost<M, B>(temp_gamma, temp, fdata);
                 temp_gamma[i] = std::max(gamma[i] - std::max(gamma[i]*0.05, 0.01), 0.0);
                 double adj2 = temp_gamma[i] - gamma[i];
-                double temp2 = cost<M>(temp_gamma, temp, fdata);
+                double temp2 = cost<M, B>(temp_gamma, temp, fdata);
 
                 grad[i] = (temp1 - temp2) / (adj1 - adj2);
 
@@ -253,12 +260,12 @@ namespace MPC_POMDP {
             }
         }
 
-        OptimizerData<M> *bm = reinterpret_cast<OptimizerData<M>*>(fdata);
-        const M & m = bm->model; const Belief & b = bm->belief; int h = bm->horizon;
+        OptimizerData<M, B> *bm = reinterpret_cast<OptimizerData<M, B>*>(fdata);
+        const M & m = bm->model; const B & b = bm->belief; int h = bm->horizon;
 
         double cost = 0;
-        Belief predict_belief = b;
-        // clock_t t = clock();
+        B predict_belief = b;
+        clock_t t = clock();
         for (int i = 0; i < h; ++i) {
             // Eigen::Map<Vector> g(gamma.data()+i*h, m.getA());
             Vector g(m.getA());
@@ -278,16 +285,30 @@ namespace MPC_POMDP {
             */
 
             // belief.transpose: 1*S; rewards_: S*A; g(gamma): A*1
-            cost += predict_belief.transpose() * m.getRewardFunction() * g;
+            if constexpr(std::is_same_v<B, Belief>) {
+                cost += predict_belief.transpose() * m.getRewardFunction() * g;
+            }
+            else if constexpr(std::is_same_v<B, SparseBelief>) {
+                auto temp_cost = Eigen::MatrixXd(SparseBelief(predict_belief.transpose()) * m.getRewardFunction() * g.sparseView());
+                cost += temp_cost(0,0);
+            }
 
             // Update belief
             if(i == h) break;
-            Belief temp = predict_belief;
+            B temp = predict_belief;
 
             //Update together
             predict_belief.setZero();
-            for(size_t j = 0; j < m.getA(); ++j) {
-                predict_belief.noalias() += Eigen::VectorXd(g(j) * m.getTransitionFunction(j).transpose() * temp);
+            if constexpr(std::is_same_v<B, Belief>) {
+                for(size_t j = 0; j < m.getA(); ++j) {
+                    predict_belief.noalias() += Eigen::VectorXd(g(j) * m.getTransitionFunction(j).transpose() * temp);
+                }
+            }
+            else if constexpr(std::is_same_v<B, SparseBelief>) {
+                for(size_t j = 0; j < m.getA(); ++j) {
+                    // auto temp_belief = g(j) * m.getTransitionFunction(j).transpose() * temp;
+                    predict_belief += SparseBelief(g(j) * m.getTransitionFunction(j).transpose() * temp);
+                }
             }
             // std::cout << predict_belief << std::endl;
 
@@ -298,8 +319,8 @@ namespace MPC_POMDP {
             // }
         }
 
-        // t = clock() - t;
-        // std::cout << "Time: " << (double) t/CLOCKS_PER_SEC << std::endl;
+        t = clock() - t;
+        std::cout << "Time: " << (double) t/CLOCKS_PER_SEC << std::endl;
 
         // std::cout << cost << std::endl;
         // for (size_t i = 0; i < h*m.getA(); ++i) {
@@ -310,7 +331,7 @@ namespace MPC_POMDP {
         return cost;
     }
 
-    template<typename M>
+    template<typename M, typename B>
     double POMDPSolver::ineq_con(const std::vector<double> &gamma, std::vector<double> &grad, 
         void* cdata) {
         if (!grad.empty()) {
@@ -320,10 +341,10 @@ namespace MPC_POMDP {
             for(size_t i = 0; i < gamma.size(); ++i) {
                 temp_gamma[i] = std::min(gamma[i] + std::max(gamma[i]*0.05, 0.01), 1.0);
                 double adj1 = temp_gamma[i] - gamma[i];
-                double temp1 = ineq_con<M>(temp_gamma, temp, cdata);
+                double temp1 = ineq_con<M, B>(temp_gamma, temp, cdata);
                 temp_gamma[i] = std::max(gamma[i] - std::max(gamma[i]*0.05, 0.01), 0.0);
                 double adj2 = temp_gamma[i] - gamma[i];
-                double temp2 = ineq_con<M>(temp_gamma, temp, cdata);
+                double temp2 = ineq_con<M, B>(temp_gamma, temp, cdata);
 
                 grad[i] = (temp1 - temp2) / (adj1 - adj2);
 
@@ -331,15 +352,15 @@ namespace MPC_POMDP {
             }
         }
 
-        OptimizerData<M> *bm = reinterpret_cast<OptimizerData<M>*>(cdata);
-        const M & m = bm->model; const Belief & b = bm->belief; double epsilon = bm->epsilon;
+        OptimizerData<M, B> *bm = reinterpret_cast<OptimizerData<M, B>*>(cdata);
+        const M & m = bm->model; const B & b = bm->belief; double epsilon = bm->epsilon;
         int h = bm->horizon;
 
-        Belief predict_belief = b;
+        B predict_belief = b;
         double vio_rate = 0;
         for (int i = 0; i < h; ++i) {
             // Eigen::Map<Vector> g(gamma.data()+i*h, m.getA());
-            Belief temp = predict_belief;
+            B temp = predict_belief;
             Vector g(m.getA());
             for (size_t j = 0; j < m.getA(); ++j) 
                 g(j) = gamma[i*h+j];
@@ -366,19 +387,35 @@ namespace MPC_POMDP {
             // Update belief 
             //Update together
             predict_belief.setZero();
-            for(size_t j = 0; j < m.getA(); ++j) {
-                predict_belief.noalias() += Eigen::VectorXd(g(j) * m.getTransitionFunction(j).transpose() * temp);
+            if constexpr(std::is_same_v<B, Belief>) {
+                for(size_t j = 0; j < m.getA(); ++j) {
+                    predict_belief.noalias() += Eigen::VectorXd(g(j) * m.getTransitionFunction(j).transpose() * temp);
+                }
+            }
+            else if constexpr(std::is_same_v<B, SparseBelief>) {
+                for(size_t j = 0; j < m.getA(); ++j) {
+                    predict_belief += SparseBelief(g(j) * m.getTransitionFunction(j).transpose() * temp);
+                }
             }
             // Update iteratively
             // for (size_t j = 0; j < m.getS(); ++j) {
             //     // g.transpose: 1*A; trans_end_index_(j): A*S; belief: S*1
             //     predict_belief(j) = g.transpose() * m.getTransitionEndIndex(j) * temp;
             // }
-
-            for (size_t j = 0; j < m.getS(); ++j) {
-                if(checkDifferentSmall(predict_belief(j), 0) && m.isViolation(j)) {
-                    vio_rate += predict_belief(j);
-                    predict_belief(j) = 0;
+            if constexpr(std::is_same_v<B, Belief>) {
+                for (size_t j = 0; j < m.getS(); ++j) {
+                    if(checkDifferentSmall(predict_belief(j), 0) && m.isViolation(j)) {
+                        vio_rate += predict_belief(j);
+                        predict_belief(j) = 0;
+                    }
+                }
+            }
+            else if constexpr(std::is_same_v<B, SparseBelief>) {
+                for (size_t j = 0; j < m.getS(); ++j) {
+                    if(checkDifferentSmall(predict_belief.coeff(j), 0) && m.isViolation(j)) {
+                        vio_rate += predict_belief.coeff(j);
+                        predict_belief.coeffRef(j) = 0;
+                    }
                 }
             }
         }
