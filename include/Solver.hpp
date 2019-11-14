@@ -26,21 +26,6 @@ namespace MPC_POMDP {
 
 	class POMDPSolver {
 		public:
-            template<typename M>
-            struct OptimizerData {
-                Belief* belief;
-                const M & model;
-                double epsilon;
-                int horizon;
-            };
-
-            template<typename M>
-            struct EqConData {
-                const M & model;
-                int horizon;
-                int N;
-            };
-
 			/**
              * @brief Basic constructor.
              *
@@ -69,12 +54,23 @@ namespace MPC_POMDP {
              */
             int getHorizon() const;
 
+            /**
+             * @brief This function allows setting the epsilon parameter.
+             *
+             * @param h The new horizon parameter.
+             */
             void setEpsilon(double e);
 
+            /**
+             * @brief This function returns the currently set epsilon parameter.
+             *
+             * @return The current epsilon.
+             */
             double getEpsilon() const;
 
             /**
-             * @brief This function solves a MPC_POMDP::Model completely.
+             * @brief This function solves a MPC_POMDP::Model or 
+             * MPC_POMDP::SparseModel completely.
              *
              * This function is pretty expensive (as are possibly all POMDP
              * solvers). For each step of the horizon, it computes the 
@@ -85,8 +81,8 @@ namespace MPC_POMDP {
              * @tparam M The type of POMDP model that needs to be solved.
              *
              * @param model The POMDP model that needs to be solved.
-             *
-             * @return 
+             * @param init_state The initial state to start propagation.
+             * @param belief Dense vector of the initial state probability pdistribution.
              */
             template<typename M>
             void operator()(const M & model, const size_t init_state, Belief& belief);
@@ -102,19 +98,34 @@ namespace MPC_POMDP {
         	static double cost(const std::vector<double> &gamma, std::vector<double> &grad, void* fdata);
 
             template<typename M>
-        	static double ineq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, void* cdata);
+        	static double ineq_con(const std::vector<double> &gamma, std::vector<double> &grad, void* cdata);
 
             template<typename M>
-            static double eq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, void* cdata);
+            static double eq_con(const std::vector<double> &gamma, std::vector<double> &grad, void* cdata);
 
             template<typename M>
-            static void eq_constraint_vector(unsigned int m, double* result, unsigned int n, const double* gamma, double* grad, void* cdata);
+            static void eq_con_vec(unsigned int m, double* result, unsigned int n, const double* gamma, double* grad, void* cdata);
 
             template<typename M>
-            static void ineq_constraint_vector(unsigned int m, double* result, unsigned int n, const double* gamma, double* grad, void* cdata);
+            static void ineq_con_vec(unsigned int m, double* result, unsigned int n, const double* gamma, double* grad, void* cdata);
 
             template<typename M>
-            static void ineq_constraint_vector_2(unsigned int m, double* result, unsigned int n, const double* gamma, double* grad, void* cdata);
+            static void ineq_con_vec_2(unsigned int m, double* result, unsigned int n, const double* gamma, double* grad, void* cdata);
+
+            template<typename M>
+            struct OptimizerData {
+                const M & model;
+                const Belief & belief;
+                double epsilon;
+                int horizon;
+            };
+
+            template<typename M>
+            struct EqConData {
+                const M & model;
+                int horizon;
+                int N;
+            };
 	};
 
     template<typename M>
@@ -124,35 +135,37 @@ namespace MPC_POMDP {
         O = model.getO();
 
         std::ofstream ofs;
-        ofs.open("test_results.POMDP", std::ofstream::out | std::ofstream::trunc);
+        ofs.open("results.POMDP", std::ofstream::out | std::ofstream::trunc);
 
         int timestep = 0;
 
         size_t curr_state = init_state;
 
-        OptimizerData<M> OD = {&belief, model, epsilon_, horizon_};
+        OptimizerData<M> OD = {model, belief, epsilon_, horizon_};
 
         nlopt::opt opt(nlopt::LD_SLSQP, A*horizon_);
         opt.set_min_objective(cost<M>, &OD);
-        opt.add_inequality_constraint(ineq_constraint<M>, &OD, 0.0);
+        opt.add_inequality_constraint(ineq_con<M>, &OD, 0.0);
 
         // Set lower bound and upper bound on gamma
         opt.set_lower_bounds(0.0);
         opt.set_upper_bounds(1.0);      
 
+        /*
         // Add Equlaity Constraints One by One
-        // std::vector<EqConData> eqcon_data(horizon_, {model, horizon_, 0});
-        // for (int i = 0; i < horizon_; i++) {
-        //  eqcon_data[i].N = i;
-        //  opt.add_equality_constraint(eq_constraint, &eqcon_data[i], equalToleranceGeneral);
-        // }
+        std::vector<EqConData> eqcon_data(horizon_, {model, horizon_, 0});
+        for (int i = 0; i < horizon_; i++) {
+          eqcon_data[i].N = i;
+          opt.add_equality_constraint(eq_constraint, &eqcon_data[i], equalToleranceGeneral);
+         }
+        */
 
         // Add Vector Valued Equality Constraints
         EqConData<M> eqcon_data({model, horizon_, 0});
         std::vector<double> tol(horizon_, equalToleranceSmall);
         // opt.add_equality_mconstraint(eq_constraint_vector<M>, &eqcon_data, tol);
-        opt.add_inequality_mconstraint(ineq_constraint_vector<M>, &eqcon_data, tol);
-        opt.add_inequality_mconstraint(ineq_constraint_vector_2<M>, &eqcon_data, tol);
+        opt.add_inequality_mconstraint(ineq_con_vec<M>, &eqcon_data, tol);
+        opt.add_inequality_mconstraint(ineq_con_vec_2<M>, &eqcon_data, tol);
 
         // Set termination
         opt.set_ftol_abs(0.0001);
@@ -179,10 +192,9 @@ namespace MPC_POMDP {
 
             t = clock() - t;
 
+            std::cout << "Step: " << timestep << std::endl;
             std::cout << "Computational time for this step is : " << (double) t/CLOCKS_PER_SEC << std::endl;
-            std::cout << "Clock per seconds is : " << CLOCKS_PER_SEC << std::endl;
 
-            // std::cout << "Step: " << timestep << std::endl;
             // std::cout << "Cost: " << cost_temp << std::endl;
             ofs << "Step: " << timestep << std::endl;
             ofs << "Cost: " << cost_temp << std::endl;
@@ -190,7 +202,6 @@ namespace MPC_POMDP {
                 ofs << gamma[i] << " ";
             }
             ofs << std::endl;
-            ofs.close();
             // std::cout << "Number of evaluations: " << count << std::endl;
 
             tot_cost += cost_temp;
@@ -203,7 +214,8 @@ namespace MPC_POMDP {
             updateBelief(model, belief, action, std::get<1>(SOR), &belief_temp);
             belief = belief_temp;
 
-            ofs.open("test_results.POMDP", std::ofstream::out | std::ofstream::app);
+            ofs << "A: " << action << " S: " << std::get<0>(SOR) << " O: " << std::get<1>(SOR) << std::endl;
+            
             ofs << "Belief: " << std::endl;
             for(size_t i = 0; i < S; i ++) {
                 if(checkDifferentSmall(belief(i), 0.0))
@@ -215,6 +227,9 @@ namespace MPC_POMDP {
 
             ++timestep;
         }
+
+        ofs.close();
+        return;
     }
 
     template<typename M>
@@ -239,10 +254,10 @@ namespace MPC_POMDP {
         }
 
         OptimizerData<M> *bm = reinterpret_cast<OptimizerData<M>*>(fdata);
-        const M & m = bm->model; Belief* b = bm->belief; int h = bm->horizon;
+        const M & m = bm->model; const Belief & b = bm->belief; int h = bm->horizon;
 
         double cost = 0;
-        Belief predict_belief = *b;
+        Belief predict_belief = b;
         // clock_t t = clock();
         for (int i = 0; i < h; ++i) {
             // Eigen::Map<Vector> g(gamma.data()+i*h, m.getA());
@@ -296,7 +311,7 @@ namespace MPC_POMDP {
     }
 
     template<typename M>
-    double POMDPSolver::ineq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, 
+    double POMDPSolver::ineq_con(const std::vector<double> &gamma, std::vector<double> &grad, 
         void* cdata) {
         if (!grad.empty()) {
             std::fill(grad.begin(), grad.end(), 0);
@@ -305,10 +320,10 @@ namespace MPC_POMDP {
             for(size_t i = 0; i < gamma.size(); ++i) {
                 temp_gamma[i] = std::min(gamma[i] + std::max(gamma[i]*0.05, 0.01), 1.0);
                 double adj1 = temp_gamma[i] - gamma[i];
-                double temp1 = ineq_constraint<M>(temp_gamma, temp, cdata);
+                double temp1 = ineq_con<M>(temp_gamma, temp, cdata);
                 temp_gamma[i] = std::max(gamma[i] - std::max(gamma[i]*0.05, 0.01), 0.0);
                 double adj2 = temp_gamma[i] - gamma[i];
-                double temp2 = ineq_constraint<M>(temp_gamma, temp, cdata);
+                double temp2 = ineq_con<M>(temp_gamma, temp, cdata);
 
                 grad[i] = (temp1 - temp2) / (adj1 - adj2);
 
@@ -317,10 +332,10 @@ namespace MPC_POMDP {
         }
 
         OptimizerData<M> *bm = reinterpret_cast<OptimizerData<M>*>(cdata);
-        const M & m = bm->model; Belief* b = bm->belief; double epsilon = bm->epsilon;
+        const M & m = bm->model; const Belief & b = bm->belief; double epsilon = bm->epsilon;
         int h = bm->horizon;
 
-        Belief predict_belief = *b;
+        Belief predict_belief = b;
         double vio_rate = 0;
         for (int i = 0; i < h; ++i) {
             // Eigen::Map<Vector> g(gamma.data()+i*h, m.getA());
@@ -373,7 +388,7 @@ namespace MPC_POMDP {
     }
 
     template<typename M>
-    double POMDPSolver::eq_constraint(const std::vector<double> &gamma, std::vector<double> &grad, 
+    double POMDPSolver::eq_con(const std::vector<double> &gamma, std::vector<double> &grad, 
         void* cdata) {
         if (!grad.empty()) {
             std::invalid_argument("Optimization solver should be derivative free");
@@ -395,7 +410,7 @@ namespace MPC_POMDP {
     }
 
     template<typename M>
-    void POMDPSolver::eq_constraint_vector(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
+    void POMDPSolver::eq_con_vec(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
         EqConData<M> *ed = reinterpret_cast<EqConData<M>*>(cdata);
         const M & m = ed->model; int h = ed->horizon;
 
@@ -421,7 +436,7 @@ namespace MPC_POMDP {
     }
 
     template<typename M>
-    void POMDPSolver::ineq_constraint_vector(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
+    void POMDPSolver::ineq_con_vec(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
         EqConData<M> *ed = reinterpret_cast<EqConData<M>*>(cdata);
         const M & m = ed->model; int h = ed->horizon;
 
@@ -447,7 +462,7 @@ namespace MPC_POMDP {
     }
 
     template<typename M>
-    void POMDPSolver::ineq_constraint_vector_2(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
+    void POMDPSolver::ineq_con_vec_2(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
         EqConData<M> *ed = reinterpret_cast<EqConData<M>*>(cdata);
         const M & m = ed->model; int h = ed->horizon;
 

@@ -166,10 +166,6 @@ namespace MPC_POMDP{
         const size_t s1 = sampleProbability(S, transitions_[a].row(s), rand_);
         const double r = rewards_.coeff(s, a);
         const size_t o = sampleProbability(O, observations_[a].row(s1), rand_);
-        std::ofstream ofs;
-        ofs.open("test_results.POMDP", std::ofstream::out | std::ofstream::app);
-        ofs << "A: " << a << " S: " << s1 << " O: " << o << std::endl;
-        ofs.close();
         return std::make_tuple(s1, o, r);
     }
 
