@@ -27,7 +27,7 @@ if (NOT WIN32)
 endif()
 
 #add_definitions(-O3 -std=c++17 -lnlopt -lm -march=native -fopenmp)
-add_definitions(-O3 -std=c++17 -lnlopt -lm -march=native -fopenmp -DNDEBUG)
+add_definitions(-O3 -std=c++17 -lnlopt -lm -march=native -fopenmp)
 
 include_directories("${PROJECT_SOURCE_DIR}/include")
 

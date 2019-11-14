@@ -38,7 +38,7 @@ namespace MPC_POMDP {
     // This is used to store a probability vector (sums to one, every element >= 0, <= 1)
     using ProbabilityVector = Vector;
     using Belief = ProbabilityVector;
-    using SparseBelief = Eigen::SparseVector<double, Eigen::RowMajor>;
+    using SparseBelief = Eigen::SparseVector<double>;
 
     using DumbMatrix2D = boost::multi_array<double, 2>;
     using DumbMatrix3D = boost::multi_array<double, 3>;

@@ -212,6 +212,9 @@ namespace MPC_POMDP {
 
             B belief_temp(S);
             updateBelief(model, belief, action, std::get<1>(SOR), &belief_temp);
+            if constexpr(std::is_same_v<B, SparseBelief>) {
+                belief_temp.pruned();
+            }
             belief = belief_temp;
 
             ofs << "A: " << action << " S: " << std::get<0>(SOR) << " O: " << std::get<1>(SOR) << std::endl;
@@ -265,7 +268,7 @@ namespace MPC_POMDP {
 
         double cost = 0;
         B predict_belief = b;
-        clock_t t = clock();
+        // clock_t t = clock();
         for (int i = 0; i < h; ++i) {
             // Eigen::Map<Vector> g(gamma.data()+i*h, m.getA());
             Vector g(m.getA());
@@ -285,11 +288,11 @@ namespace MPC_POMDP {
             */
 
             // belief.transpose: 1*S; rewards_: S*A; g(gamma): A*1
-            if constexpr(std::is_same_v<B, Belief>) {
+            if constexpr(std::is_same_v<B, Belief>) {;
                 cost += predict_belief.transpose() * m.getRewardFunction() * g;
             }
             else if constexpr(std::is_same_v<B, SparseBelief>) {
-                auto temp_cost = Eigen::MatrixXd(SparseBelief(predict_belief.transpose()) * m.getRewardFunction() * g.sparseView());
+                Eigen::Matrix<double, 1, 1> temp_cost = Matrix2D(predict_belief.transpose() * m.getRewardFunction()) * g;
                 cost += temp_cost(0,0);
             }
 
@@ -306,9 +309,9 @@ namespace MPC_POMDP {
             }
             else if constexpr(std::is_same_v<B, SparseBelief>) {
                 for(size_t j = 0; j < m.getA(); ++j) {
-                    // auto temp_belief = g(j) * m.getTransitionFunction(j).transpose() * temp;
-                    predict_belief += SparseBelief(g(j) * m.getTransitionFunction(j).transpose() * temp);
+                    predict_belief += g(j) * m.getTransitionFunction(j).transpose() * temp;
                 }
+                predict_belief.pruned(0.001);
             }
             // std::cout << predict_belief << std::endl;
 
@@ -319,8 +322,8 @@ namespace MPC_POMDP {
             // }
         }
 
-        t = clock() - t;
-        std::cout << "Time: " << (double) t/CLOCKS_PER_SEC << std::endl;
+        // t = clock() - t;
+        // std::cout << "Time: " << (double) t/CLOCKS_PER_SEC << std::endl;
 
         // std::cout << cost << std::endl;
         // for (size_t i = 0; i < h*m.getA(); ++i) {
@@ -394,8 +397,9 @@ namespace MPC_POMDP {
             }
             else if constexpr(std::is_same_v<B, SparseBelief>) {
                 for(size_t j = 0; j < m.getA(); ++j) {
-                    predict_belief += SparseBelief(g(j) * m.getTransitionFunction(j).transpose() * temp);
+                    predict_belief += g(j) * m.getTransitionFunction(j).transpose() * temp;
                 }
+                predict_belief.pruned(0.001);
             }
             // Update iteratively
             // for (size_t j = 0; j < m.getS(); ++j) {
@@ -411,12 +415,18 @@ namespace MPC_POMDP {
                 }
             }
             else if constexpr(std::is_same_v<B, SparseBelief>) {
-                for (size_t j = 0; j < m.getS(); ++j) {
-                    if(checkDifferentSmall(predict_belief.coeff(j), 0) && m.isViolation(j)) {
-                        vio_rate += predict_belief.coeff(j);
-                        predict_belief.coeffRef(j) = 0;
+                for (SparseBelief::InnerIterator it(predict_belief); it; ++it) {
+                    if(m.isViolation(it.index())) {
+                        vio_rate += it.value();
+                        predict_belief.coeffRef(it.index()) = 0;
                     }
                 }
+                // for (size_t j = 0; j < m.getS(); ++j) {
+                //     if(checkDifferentSmall(predict_belief.coeff(j), 0) && m.isViolation(j)) {
+                //         vio_rate += predict_belief.coeff(j);
+                //         predict_belief.coeffRef(j) = 0;
+                //     }
+                // }
             }
         }
 

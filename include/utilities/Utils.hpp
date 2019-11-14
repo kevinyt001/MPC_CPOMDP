@@ -29,12 +29,8 @@ namespace MPC_POMDP {
         if (!bRet) return;
 
         auto & br = *bRet;
-        if constexpr(std::is_same_v<B, Belief>) {
-            br = model.getObservationFunction(a).col(o).cwiseProduct((b.transpose() * model.getTransitionFunction(a)).transpose());
-        }
-        else if constexpr(std::is_same_v<B, SparseBelief>) {
-            br = model.getObservationFunction(a).col(o).cwiseProduct((SparseBelief(b.transpose()) * model.getTransitionFunction(a)).transpose());
-        }
+        
+        br = model.getObservationFunction(a).col(o).cwiseProduct((b.transpose() * model.getTransitionFunction(a)).transpose());
 
         // Iteratively update the belief         
         // const size_t S = model.getS();
