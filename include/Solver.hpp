@@ -170,7 +170,7 @@ namespace MPC_POMDP {
         // Set termination
         opt.set_ftol_abs(0.0001);
         // opt.set_xtol_abs(0.0000001);
-        // opt.set_stopval(192.7);
+        // opt.set_stopval(4.39);
 
         double tot_cost = 0;
 
