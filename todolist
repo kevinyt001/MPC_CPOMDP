@@ -1,5 +1,6 @@
 Todo
-Add sparse belief implementation by operator overloading (investigate prune, sparseView, makecompressed etc)
+
+Develop IO with sparse matrices directly. 
 
 Derive analytical gradient
 

@@ -163,7 +163,7 @@ namespace MPC_POMDP {
         // Add Vector Valued Equality Constraints
         EqConData<M> eqcon_data({model, horizon_, 0});
         std::vector<double> tol(horizon_, equalToleranceSmall);
-        // opt.add_equality_mconstraint(eq_constraint_vector<M>, &eqcon_data, tol);
+        // opt.add_equality_mconstraint(eq_con_vec<M>, &eqcon_data, tol);
         opt.add_inequality_mconstraint(ineq_con_vec<M>, &eqcon_data, tol);
         opt.add_inequality_mconstraint(ineq_con_vec_2<M>, &eqcon_data, tol);
 
@@ -250,9 +250,11 @@ namespace MPC_POMDP {
             std::vector<double> temp;
             for(size_t i = 0; i < gamma.size(); ++i) {
                 temp_gamma[i] = std::min(gamma[i] + std::max(gamma[i]*0.05, 0.01), 1.0);
+                // temp_gamma[i] = gamma[i] + std::max(gamma[i]*0.05, 0.01);
                 double adj1 = temp_gamma[i] - gamma[i];
                 double temp1 = cost<M, B>(temp_gamma, temp, fdata);
                 temp_gamma[i] = std::max(gamma[i] - std::max(gamma[i]*0.05, 0.01), 0.0);
+                // temp_gamma[i] = gamma[i] - std::max(gamma[i]*0.05, 0.01);
                 double adj2 = temp_gamma[i] - gamma[i];
                 double temp2 = cost<M, B>(temp_gamma, temp, fdata);
 
@@ -271,8 +273,8 @@ namespace MPC_POMDP {
         for (int i = 0; i < h; ++i) {
             // Eigen::Map<Vector> g(gamma.data()+i*h, m.getA());
             Vector g(m.getA());
-            for (size_t j = 0; j < m.getA(); ++j) 
-                g(j) = gamma[i*h+j];
+            for (size_t j = 0; j < m.getA(); ++j)
+                g(j) = gamma[i*m.getA()+j];
 
             /*
             // rewards_.transpose: A*S; belief: S*1
@@ -312,7 +314,11 @@ namespace MPC_POMDP {
                 }
                 predict_belief.pruned(0.001);
             }
-            // std::cout << predict_belief << std::endl;
+            // for (size_t j = 0; j < m.getS(); ++j) {
+            //     if(checkDifferentSmall(predict_belief(j), 0.0))
+            //         std::cout << "i: " << i << " j: " << j << " " << predict_belief(j) << std::endl;
+            // }
+            
 
             //Update Iteratively
             // for (size_t j = 0; j < m.getS(); ++j) {
@@ -342,9 +348,11 @@ namespace MPC_POMDP {
             std::vector<double> temp;
             for(size_t i = 0; i < gamma.size(); ++i) {
                 temp_gamma[i] = std::min(gamma[i] + std::max(gamma[i]*0.05, 0.01), 1.0);
+                // temp_gamma[i] = gamma[i] + std::max(gamma[i]*0.05, 0.01);
                 double adj1 = temp_gamma[i] - gamma[i];
                 double temp1 = ineq_con<M, B>(temp_gamma, temp, cdata);
                 temp_gamma[i] = std::max(gamma[i] - std::max(gamma[i]*0.05, 0.01), 0.0);
+                // temp_gamma[i] = gamma[i] - std::max(gamma[i]*0.05, 0.01);
                 double adj2 = temp_gamma[i] - gamma[i];
                 double temp2 = ineq_con<M, B>(temp_gamma, temp, cdata);
 
@@ -365,7 +373,7 @@ namespace MPC_POMDP {
             B temp = predict_belief;
             Vector g(m.getA());
             for (size_t j = 0; j < m.getA(); ++j) 
-                g(j) = gamma[i*h+j];
+                g(j) = gamma[i*m.getA()+j];
 
             /*
             // Update belief for each state

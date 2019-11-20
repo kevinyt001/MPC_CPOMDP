@@ -22,7 +22,7 @@ int main() {
 	// MPC_POMDP::Model overtake = MPC_POMDP::parseCassandra(ifs);
 
 	int horizon = 3;
-	double epsilon = 0.01;
+	double epsilon = 0.05;
 	MPC_POMDP::POMDPSolver solver(horizon, epsilon);
 
 	size_t init_state = 1360;
