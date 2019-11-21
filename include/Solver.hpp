@@ -289,7 +289,7 @@ namespace MPC_POMDP {
             */
 
             // belief.transpose: 1*S; rewards_: S*A; g(gamma): A*1
-            if constexpr(std::is_same_v<B, Belief>) {;
+            if constexpr(std::is_same_v<B, Belief>) {
                 cost += predict_belief.transpose() * m.getRewardFunction() * g;
             }
             else if constexpr(std::is_same_v<B, SparseBelief>) {
