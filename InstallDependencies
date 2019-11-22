@@ -1,3 +1,45 @@
+Install Cmake
+https://anglehit.com/how-to-install-the-latest-version-of-cmake-via-command-line/
+
+    Uninstall the default version provided by Ubuntu’s package manager:
+
+    sudo apt-get purge cmake
+
+    Go to the official CMake webpage, then download and extract the latest version. Update the version and build variables in the following command to get the desired version:
+
+    $ version=3.15
+    $ build=5
+    $ mkdir ~/temp
+    $ cd ~/temp
+    $ wget https://cmake.org/files/v$version/cmake-$version.$build.tar.gz
+    $ tar -xzvf cmake-$version.$build.tar.gz
+    $ cd cmake-$version.$build/
+
+    Install the extracted source by running:
+
+    $ ./bootstrap
+    $ make -j4
+    $ sudo make install
+
+    Test your new cmake version.
+
+    $ cmake --version
+
+    Results of cmake --version:
+
+    cmake version 3.10.X
+
+
+
+Install Boost
+sudo apt-get install libboost-all-dev
+
+Install Eigen3
+sudo apt install libeigen3-dev
+
+Install NLOPT
+sudo apt-get install libnlopt-dev
+
 install g++7 and set up as default compiler:
 https://gist.github.com/jlblancoc/99521194aba975286c80f93e47966dc5
 
