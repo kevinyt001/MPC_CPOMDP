@@ -126,6 +126,7 @@ namespace MPC_POMDP {
         app->Options()->SetStringValue("mu_strategy", "adaptive");
         app->Options()->SetStringValue("output_file", "ipopt.out");
         app->Options()->SetStringValue("hessian_approximation", "limited-memory");
+        app->Options()->SetStringValue("linear_solver", "ma27");
         // The following overwrites the default name (ipopt.opt) of the options file
         // app->Options()->SetStringValue("option_file_name", "hs071.opt");
 
@@ -148,8 +149,11 @@ namespace MPC_POMDP {
                 std::cout << (int) status << std::endl;
             }
 
+            std::cout << "Pass initialization" << std::endl;
             // Ask Ipopt to solve the problem
             status = app->OptimizeTNLP(mynlp);
+
+            std::cout << "Pass OptimizeTNLP" << std::endl;
 
             if( status == Solve_Succeeded )
             {
@@ -170,6 +174,8 @@ namespace MPC_POMDP {
 
             std::cout << "Step: " << timestep << std::endl;
             std::cout << "Computational time for this step is : " << (double) t/CLOCKS_PER_SEC << std::endl;
+
+            assert(false);
 
             // std::cout << "Cost: " << cost_temp << std::endl;
             ofs << "Step: " << timestep << std::endl;

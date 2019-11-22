@@ -36,6 +36,7 @@ namespace MPC_POMDP {
       IndexStyleEnum& index_style
    )
    {
+      std::cout << "Start getting NLP info" << std::endl;
       // The problem described in HS071_NLP.hpp has 4 variables, x[0] through x[3]
       n = horizon_ * m_.getA();
 
@@ -52,6 +53,8 @@ namespace MPC_POMDP {
       // use the C style indexing (0-based)
       index_style = TNLP::C_STYLE;
 
+      std::cout << "Finish getting NLP info" << std::endl;
+
       return true;
    }
    // [TNLP_get_nlp_info]
@@ -67,6 +70,7 @@ namespace MPC_POMDP {
       Number* g_u
    )
    {
+      std::cout << "Start getting NLP bound info" << std::endl;
       // here, the n and m we gave IPOPT in get_nlp_info are passed back to us.
       // If desired, we could assert to make sure they are what we think they are.
       assert(n == horizon_ * m_.getA());
@@ -98,6 +102,8 @@ namespace MPC_POMDP {
          g_l[i] = g_u[i] = 1.0;
       }
 
+      std::cout << "Finisth getting NLP bound info" << std::endl;
+
       return true;
    }
    // [TNLP_get_bounds_info]
@@ -116,6 +122,7 @@ namespace MPC_POMDP {
       Number* lambda
    )
    {
+      std::cout << "Start getting NLP starting point" << std::endl;
       // Here, we assume we only have starting values for x, if you code
       // your own NLP, you can provide starting values for the dual variables
       // if you wish
@@ -127,6 +134,8 @@ namespace MPC_POMDP {
       for(Index i = 0; i < n; ++i) {
          x[i] = 1.0/(double) n;
       }
+
+      std::cout << "Finish getting NLP starting point" << std::endl;
 
       return true;
    }
@@ -141,6 +150,7 @@ namespace MPC_POMDP {
       Number&       obj_value
    )
    {
+      // std::cout << "Start evaluating f" << std::endl;
       assert(n == horizon_*m_.getA());
       
       obj_value = 0;
@@ -165,6 +175,8 @@ namespace MPC_POMDP {
          }
       }
 
+      // std::cout << "Finish evaluating f" << std::endl;
+
       return true;
    }
    // [TNLP_eval_f]
@@ -178,6 +190,7 @@ namespace MPC_POMDP {
       Number*       grad_f
    )
    {
+      // std::cout << "Start evaluating grad f" << std::endl;
       assert(n == horizon_*m_.getA());
 
       Number* temp_x = new Number[horizon_*m_.getA()];
@@ -203,6 +216,8 @@ namespace MPC_POMDP {
       }
       delete temp_x;
 
+      // std::cout << "Finish evaluating grad f" << std::endl;
+
       return true;
    }
    // [TNLP_eval_grad_f]
@@ -217,6 +232,8 @@ namespace MPC_POMDP {
       Number*       g
    )
    {
+      // std::cout << "Start evaluating g" << std::endl;
+
       assert(n == horizon_*m_.getA());
       assert(m == 1 + horizon_);
 
@@ -250,6 +267,8 @@ namespace MPC_POMDP {
          }
       }
 
+      // std::cout << "Finish evaluating g" << std::endl;
+
       return true;
    }
    // [TNLP_eval_g]
@@ -267,6 +286,8 @@ namespace MPC_POMDP {
       Number*       values
    )
    {
+      // std::cout << "Start evaluating jac g" << std::endl;
+
       assert(n == horizon_*m_.getA());
       assert(m == 1 + horizon_);
 
@@ -285,13 +306,21 @@ namespace MPC_POMDP {
             idx++;
          }
 
-         for( Index row = 1; row < m; row++ )
+         for(row = 1; row < m; row++ )
          {
-            Index col = row - 1; //(1,0), (2,1)
-            iRow[idx] = row;
-            jCol[idx] = col;
-            idx++;
+            for(Index col = 0; col < m_.getA(); col++) {
+               iRow[idx] = row;
+               jCol[idx] = (row-1)*m_.getA() + col;
+               idx++;
+            }
          }
+
+         // for(Index i = 0; i < idx; ++i) {
+         //    std::cout<< "idx: " << i << "(" << iRow[i] << "," << jCol[i] << ")" << std::endl;
+         // }
+
+         // assert(false);
+
       }
       else
       {
@@ -323,6 +352,8 @@ namespace MPC_POMDP {
             values[i] = 1;
       }
 
+      // std::cout << "Finish evaluating jac g" << std::endl;
+
       return true;
    }
    // [TNLP_eval_jac_g]
@@ -343,6 +374,8 @@ namespace MPC_POMDP {
       Number*       values
    )
    {
+      std::cout << "Start evaluating h" << std::endl;
+
       assert(n == 4);
       assert(m == 2);
 
@@ -433,6 +466,12 @@ namespace MPC_POMDP {
       {
          std::cout << "x[" << i << "] = " << x[i] << std::endl;
       }
+
+      for( Index i = 0; i < n; i++ )
+      {
+         std::cout << x[i] << " ";
+      }
+      std::cout << std::endl;
 
       std::cout << std::endl << std::endl << "Solution of the bound multipliers, z_L and z_U" << std::endl;
       for( Index i = 0; i < n; i++ )

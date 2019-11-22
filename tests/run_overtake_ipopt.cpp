@@ -9,6 +9,10 @@
 #include "Model.hpp"
 #include "SparseModel.hpp"
 #include "Solver.hpp"
+#include "SolverIPOPT.hpp"
+#include "IpIpoptApplication.hpp"
+#include "POMDP_NLP.hpp"
+#include "IpTNLP.hpp"
 #include "utilities/CassandraParser.hpp"
 #include "IO.hpp"
 #include "utilities/Core.hpp"
@@ -23,7 +27,7 @@ int main() {
 
 	int horizon = 5;
 	double epsilon = 0.05;
-	MPC_POMDP::POMDPSolver solver(horizon, epsilon);
+	MPC_POMDP::POMDPSolver_IPOPT solver(horizon, epsilon);
 
 	size_t init_state = 328;
 	// MPC_POMDP::SparseBelief belief(overtake.getS());

@@ -55,6 +55,13 @@ include_directories(SYSTEM ${IPOPT_INCLUDE_DIRS})
 #endif()
 #include_directories(SYSTEM ${MKL_INCLUDE_DIRS})
 
+find_package(BLAS REQUIRED)
+if ( NOT BLAS_FOUND)
+	message(STATUS "This project requires the BLAS library, and will not be compiled.")
+	return()
+endif()
+include_directories(SYSTEM ${BLAS_INCLUDE_DIRS})
+
 ##############################
 ##          Flags           ##
 ##############################
@@ -82,7 +89,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 file(GLOB_RECURSE SRC_LIB ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/include/*.hpp)
 
 add_library(${PROJECT_NAME} SHARED ${SRC_LIB})
-target_link_libraries(${PROJECT_NAME} ${NLOPT_LIBRARIES} ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${NLOPT_LIBRARIES} ${IPOPT_LIBRARIES} ${BLAS_LIBRARIES} ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES}) 
 
 file(GLOB files ${PROJECT_SOURCE_DIR}/tests/*.cpp)
 
@@ -90,5 +97,5 @@ foreach(f ${files})
 GET_FILENAME_COMPONENT(fname ${f} NAME_WE )
 add_executable(${fname} ${f} )
 #set_property(TARGET ${fname} PROPERTY CXX_STANDARD 17)
-target_link_libraries(${fname} ${PROJECT_NAME} ${NLOPT_LIBRARIES} ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES})
+target_link_libraries(${fname} ${PROJECT_NAME} ${NLOPT_LIBRARIES} ${IPOPT_LIBRARIES} ${BLAS_LIBRARIES} ${Boost_LIBRARIES} ${EIGEN3_LIBRARIES})
 endforeach()
