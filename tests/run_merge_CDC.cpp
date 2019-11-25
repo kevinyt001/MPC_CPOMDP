@@ -18,8 +18,10 @@ int main() {
 	std::ifstream ifs;
 	ifs.open("../input/CDC19_merge.POMDP", std::ifstream::in);
 
-	MPC_POMDP::SparseModel overtake = MPC_POMDP::parseCassandraSparse(ifs);
+	MPC_POMDP::SparseModel overtake = MPC_POMDP::SparseparseCassandraSparse(ifs);
 	// MPC_POMDP::Model overtake = MPC_POMDP::parseCassandra(ifs);
+
+	std::cout << "Finish constructing the model" << std::endl;
 
 	int horizon = 3;
 	double epsilon = 0.01;
@@ -33,6 +35,23 @@ int main() {
 
 	belief(init_state) = 0.5;
 	belief(init_state_2) = 0.5;
+
+	std::cout << "Start solving ..." << std::endl;
+
+	std::cout << "Model S:" << overtake.getS() << std::endl;
+	std::cout << "Model A:" << overtake.getA() << std::endl;
+	std::cout << "Model O:" << overtake.getO() << std::endl;
+
+	std::cout << "Model transition size:" << overtake.getTransitionFunction().size()
+	<< " x " << overtake.getTransitionFunction()[0].rows() << " x " <<
+	overtake.getTransitionFunction()[0].cols() << std::endl;
+
+	std::cout << "Model rewards size:" << overtake.getRewardFunction().rows() << " x " <<
+	overtake.getRewardFunction().cols() << std::endl;
+
+	std::cout << "Model observation size:" << overtake.getObservationFunction().size()
+	<< " x " << overtake.getObservationFunction()[0].rows() << " x " <<
+	overtake.getObservationFunction()[0].cols() << std::endl;
 
 	solver(overtake, init_state, belief);
 

@@ -86,6 +86,27 @@ namespace MPC_POMDP{
         updateTransEndIndex();
     }
 
+    SparseModel::SparseModel(NoCheck, const size_t s, const size_t a, const size_t o, const TransitionMatrix & t, 
+        const RewardMatrix & r, const ObservationMatrix & om, const std::vector<bool>& ter, 
+        const std::vector<bool>& vio, const double d):
+            S(s), A(a), O(o), discount_(d), 
+            transitions_(t), trans_end_index_(S, SparseMatrix2D(A, S)),
+            rewards_(r), observations_(om),
+            terminations_(ter), violations_(vio), rand_(Seeder::getSeed()) 
+    {
+        // std::cout << "Start Constructing Model" << std::endl;
+        if(!rewards_.isCompressed()) rewards_.makeCompressed();
+        // std::cout << "Compressed Rewards" << std::endl;
+        for(size_t i = 0; i < A; ++i) {
+            // std::cout << "i: " << i << std::endl;
+            if(!transitions_[i].isCompressed()) transitions_[i].makeCompressed();
+            if(!observations_[i].isCompressed()) observations_[i].makeCompressed();
+        }
+        // std::cout << "Compressed transitions and observations"<< std::endl;
+        updateTransEndIndex();
+        // std::cout << "Finish updating trans_end_index_" << std::endl;
+    }
+
     void SparseModel::setTransitionFunction(const TransitionMatrix & t) {
         // Eigen sparse does not implement minCoeff so we can't check for negatives.
         // So we force the matrix to its abs, and if then the sum goes haywire then

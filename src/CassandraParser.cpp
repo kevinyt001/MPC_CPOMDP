@@ -95,6 +95,48 @@ namespace MPC_POMDP {
         return POMDPVals(S, A, O, T, R, W, TER, VIO, discount);
     }
 
+    CassandraParser::SparsePOMDPVals CassandraParser::parsePOMDP_Sparse(std::istream & input) {
+        // Parse preamble.
+        parseModelInfo(input);
+
+        if (!S || !A || !O)
+            throw std::runtime_error("POMDP definition is incomplete");
+
+        // Init matrices to store data.
+        initSparseMatrices();
+
+        for (i_ = 0; i_< lines_.size(); ++i_) {
+            const auto & line = lines_[i_];
+
+            if (boost::starts_with(line, "T")) {
+                processSparseMatrix(Sparse_T, stateMap_, stateMap_);
+                continue;
+            }
+
+            if (boost::starts_with(line, "O")) {
+                processSparseMatrix(Sparse_W, stateMap_, observationMap_);
+                continue;
+            }
+
+            if (boost::starts_with(line, "R")) {
+                processSparseReward();
+                continue;
+            }
+
+            if (boost::starts_with(line, "E")) {
+                processTerVio(TER);
+                continue;
+            }
+
+            if (boost::starts_with(line, "V")) {
+                processTerVio(VIO);
+                continue;
+            }
+        }
+
+        return SparsePOMDPVals(S, A, O, Sparse_T, Sparse_R, Sparse_W, TER, VIO, discount);
+    }
+
     // ############################
     // ####  PRIVATE FUNCTIONS  ###
     // ############################
@@ -146,6 +188,18 @@ namespace MPC_POMDP {
             TER.resize(S, false); VIO.resize(S, false); 
             if (O)
                 initMatrix(W, S, A, O);
+        }
+    }
+
+    void CassandraParser::initSparseMatrices() {
+        if (S && A) {
+            Sparse_T.clear(); Sparse_T.resize(A, SparseMatrix2D(S, S));
+            Sparse_R.resize(S, A); Sparse_R.setZero();
+            TER.clear(); VIO.clear();
+            TER.resize(S, false); VIO.resize(S, false); 
+            if (O) {
+                Sparse_W.clear(); Sparse_W.resize(A, SparseMatrix2D(S, O));
+            }
         }
     }
 
@@ -282,6 +336,34 @@ namespace MPC_POMDP {
         }
     }
 
+    void CassandraParser::processSparseMatrix(SparseMatrix3D & M, const IDMap & d1map, const IDMap & d3map) {
+        const std::string & str = lines_[i_];
+
+        const size_t D2 = M[0].rows();
+        const size_t D3 = M[0].cols();
+
+        switch (std::count(std::begin(str), std::end(str), ':')) {
+            case 3: {
+                // T : <action> : <start-state> : <end-state> <prob>
+                // O : <action> : <end-state> : <observation> <prob>
+                const auto tokens = tokenize(str, ": ");
+
+                // Action is first both in transition and observation
+                const auto av  = parseIndeces(tokens.at(1), actionMap_, A);
+                const auto d2v = parseIndeces(tokens.at(2), d1map, D2);
+                const auto d3v = parseIndeces(tokens.at(3), d3map, D3);
+                const auto val = std::stod(tokens.at(4));
+
+                for (const auto d2 : d2v)
+                    for (const auto a : av)
+                        for (const auto d3 : d3v)
+                            M[a].insert(d2,d3) = val;
+                break;
+            }
+            default: throw std::runtime_error("Parsing error: wrong number of ':' in '" + str + "'");
+        }
+    }
+
     void CassandraParser::processReward() {
         const std::string & str = lines_[i_];
 
@@ -300,6 +382,33 @@ namespace MPC_POMDP {
                     for (const auto a : av)
                         for (const auto s1 : s1v)
                             R[s][a][s1] = val;
+                break;
+            }
+            default: throw std::runtime_error("Parsing error: wrong number of ':' in '" + str + "'");
+        }
+    }
+
+    void CassandraParser::processSparseReward() {
+        const std::string & str = lines_[i_];
+
+        switch (std::count(std::begin(str), std::end(str), ':')) {
+            case 4: {
+                // R : <action> : <start-state> : <end-state> : <obs> <prob>
+                const auto tokens = tokenize(str, ": ");
+
+                // Action is first both in transition and observation
+                const auto av   = parseIndeces(tokens.at(1), actionMap_, A);
+                const auto sv   = parseIndeces(tokens.at(2), stateMap_,  S);
+                const auto s1v  = parseIndeces(tokens.at(3), stateMap_,  S);
+                const auto val = std::stod(tokens.at(5));
+
+                for (const auto s : sv)
+                    for (const auto a : av)
+                        for (const auto s1 : s1v) {
+                            const double p = Sparse_T[a].coeff(s, s1);
+                            if (checkDifferentSmall(0.0, val) && checkDifferentSmall(0.0, p) )
+                                Sparse_R.coeffRef(s, a) += val * p;
+                        }
                 break;
             }
             default: throw std::runtime_error("Parsing error: wrong number of ':' in '" + str + "'");

@@ -7,6 +7,7 @@
 #include <functional>
 
 #include "Model.hpp"
+#include "DefTypes.hpp"
 
 namespace MPC_POMDP {
     class CassandraParser {
@@ -21,6 +22,8 @@ namespace MPC_POMDP {
             using MDPVals = std::tuple<size_t, size_t, const DumbMatrix3D &, const DumbMatrix3D &, double>;
             using POMDPVals = std::tuple<size_t, size_t, size_t, const DumbMatrix3D &, const DumbMatrix3D &, 
             const DumbMatrix3D &, const std::vector<bool> &, const std::vector<bool> &, double>;
+            using SparsePOMDPVals = std::tuple<size_t, size_t, size_t, const SparseMatrix3D &, const SparseMatrix2D &, 
+            const SparseMatrix3D &, const std::vector<bool> &, const std::vector<bool> &, double>;
 
             using Tokens = std::vector<std::string>;
 
@@ -73,6 +76,8 @@ namespace MPC_POMDP {
              */
             POMDPVals parsePOMDP(std::istream & input);
 
+            SparsePOMDPVals parsePOMDP_Sparse(std::istream & input);
+
         private:
             /**
              * @brief This function parses the preamble from the input.
@@ -92,6 +97,8 @@ namespace MPC_POMDP {
              * @brief This function zeroes the local function matrices from read data.
              */
             void initMatrices();
+
+            void initSparseMatrices();
 
             /**
              * @brief This function extracts ids from numbers or string tokens.
@@ -167,6 +174,8 @@ namespace MPC_POMDP {
              * @param d3map The list of id string tokens for the first dimension of the matrix.
              */
             void processMatrix(DumbMatrix3D & M, const IDMap & d1map, const IDMap & d3map);
+            
+            void processSparseMatrix(SparseMatrix3D & M, const IDMap & d1map, const IDMap & d3map);
 
             /**
              * @brief This function processes a reward function entry.
@@ -175,6 +184,8 @@ namespace MPC_POMDP {
              * thus, per syntax, must specify values one by one.
              */
             void processReward();
+
+            void processSparseReward();
 
             /**
              * @brief This function processes a termination function 
@@ -195,6 +206,8 @@ namespace MPC_POMDP {
 
             // Storage for input matrices.
             DumbMatrix3D T, R, W;
+            SparseMatrix3D Sparse_T, Sparse_W;
+            SparseMatrix2D Sparse_R;
             std::vector<bool> TER, VIO;
 
             // These are actions to perform for the preamble.

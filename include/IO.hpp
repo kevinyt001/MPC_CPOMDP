@@ -34,6 +34,8 @@ namespace MPC_POMDP {
      */
     SparseModel parseCassandraSparse(std::istream & input);
 
+    SparseModel SparseparseCassandraSparse(std::istream & input);
+
 }
 
 #endif

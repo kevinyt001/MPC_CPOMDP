@@ -111,6 +111,10 @@ namespace MPC_POMDP {
             SparseModel(NoCheck, size_t s, size_t a, size_t o, TransitionMatrix && t, 
             	RewardMatrix && r, ObservationMatrix && om, std::vector<bool> & ter,
                   std::vector<bool> & vio, double d);
+            
+            SparseModel(NoCheck, size_t s, size_t a, size_t o, const TransitionMatrix & t, 
+                  const RewardMatrix & r, const ObservationMatrix & om, const std::vector<bool> & ter,
+                  const std::vector<bool> & vio, double d);
 
             // ~Model();
 
