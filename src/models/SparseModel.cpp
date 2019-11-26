@@ -6,10 +6,9 @@
 namespace MPC_POMDP{
 
 	SparseModel::SparseModel(const size_t s, const size_t a, const size_t o, const double discount):
-            S(s), A(a), O(o), discount_(discount), 
+            Model(s, a, o, d),
             transitions_(A, SparseMatrix2D(S, S)), trans_end_index_(S, SparseMatrix2D(A, S)), 
-            rewards_(S, A), observations_(A, SparseMatrix2D(S, O)),
-            terminations_(S, true), violations_(S, false), rand_(Seeder::getSeed())
+            rewards_(S, A), observations_(A, SparseMatrix2D(S, O))
 	{
 		for (size_t a = 0; a < A; a++)
 			transitions_[a].setIdentity();
@@ -27,10 +26,9 @@ namespace MPC_POMDP{
 	}
 
 	SparseModel::SparseModel(const SparseModel& model):
-			S(model.getS()), A(model.getA()), O(model.getO()), 
+            Model(model.getS(), model.getA(), model.getO()),
             transitions_(A, SparseMatrix2D(S, S)), trans_end_index_(S, SparseMatrix2D(A, S)), 
-            rewards_(S, A), observations_(A, SparseMatrix2D(S, O)),
-            terminations_(S, true), violations_(S, false), rand_(Seeder::getSeed())
+            rewards_(S, A), observations_(A, SparseMatrix2D(S, O))
 	{
 		setDiscount(model.getDiscount());
 		rewards_.setZero();
@@ -68,8 +66,8 @@ namespace MPC_POMDP{
         }
         rewards_.makeCompressed();
         
-        terminations_ = model.getTerminationFunction();
-        violations_ = model.getViolationFunction();
+        setTerminationFunction(model.getTerminationFunction());
+        setViolationFunction(model.getViolationFunction());
 
         updateTransEndIndex();
 
@@ -78,21 +76,22 @@ namespace MPC_POMDP{
     SparseModel::SparseModel(NoCheck, const size_t s, const size_t a, const size_t o, TransitionMatrix && t, 
     	RewardMatrix && r, ObservationMatrix && om, std::vector<bool>& ter, 
         std::vector<bool>& vio, const double d):
-    		S(s), A(a), O(o), discount_(d), 
+            Model(s, a, o, d),
     		transitions_(std::move(t)), trans_end_index_(S, SparseMatrix2D(A, S)),
-    		rewards_(std::move(r)), observations_(om),
-            terminations_(ter), violations_(vio), rand_(Seeder::getSeed()) 
+    		rewards_(std::move(r)), observations_(om)
     {
+        setTerminationFunction(ter);
+        setViolationFunction(vio);
+
         updateTransEndIndex();
     }
 
     SparseModel::SparseModel(NoCheck, const size_t s, const size_t a, const size_t o, const TransitionMatrix & t, 
         const RewardMatrix & r, const ObservationMatrix & om, const std::vector<bool>& ter, 
         const std::vector<bool>& vio, const double d):
-            S(s), A(a), O(o), discount_(d), 
+            Model(s, a, o, d),
             transitions_(t), trans_end_index_(S, SparseMatrix2D(A, S)),
-            rewards_(r), observations_(om),
-            terminations_(ter), violations_(vio), rand_(Seeder::getSeed()) 
+            rewards_(r), observations_(om)
     {
         // std::cout << "Start Constructing Model" << std::endl;
         if(!rewards_.isCompressed()) rewards_.makeCompressed();
@@ -103,6 +102,9 @@ namespace MPC_POMDP{
             if(!observations_[i].isCompressed()) observations_[i].makeCompressed();
         }
         // std::cout << "Compressed transitions and observations"<< std::endl;
+        setTerminationFunction(ter);
+        setViolationFunction(vio);
+        
         updateTransEndIndex();
         // std::cout << "Finish updating trans_end_index_" << std::endl;
     }
@@ -141,33 +143,14 @@ namespace MPC_POMDP{
 		observations_ = om;
 	}
 
-    void SparseModel::setTerminationFunction(const std::vector<bool> & ter) {
-        if (ter.size() != S) throw std::invalid_argument("Input termination function does not have the correct size");
-        terminations_ = ter;
+
+    double SparseModel::getTransitionProbability(const size_t s, const size_t a, const size_t s1) const {
+        return transitions_[a].coeff(s, s1);
     }
 
-    void SparseModel::setViolationFunction(const std::vector<bool> & vio) {
-        if (vio.size() != S) throw std::invalid_argument("Input violation function does not have the correct size");
-        violations_ = vio;
+    double SparseModel::getExpectedReward(const size_t s, const size_t a, const size_t) const {
+        return rewards_.coeff(s, a);
     }
-
-    void SparseModel::setDiscount(const double d) {
-        if ( d <= 0.0 || d > 1.0 ) throw std::invalid_argument("Discount parameter must be in (0,1]");
-        discount_ = d;
-    }
-
-	size_t SparseModel::getS() const { return S; }
-	size_t SparseModel::getA() const { return A; }
-	size_t SparseModel::getO() const { return O; }
-	double SparseModel::getDiscount() const { return discount_; }
-
-	double SparseModel::getTransitionProbability(const size_t s, const size_t a, const size_t s1) const {
-		return transitions_[a].coeff(s, s1);
-	}
-
-	double SparseModel::getExpectedReward(const size_t s, const size_t a, const size_t) const {
-		return rewards_.coeff(s, a);
-	}
 
     double SparseModel::getObservationProbability(const size_t s1, const size_t a, const size_t o) const {
         return observations_[a].coeff(s1, o);
@@ -177,8 +160,6 @@ namespace MPC_POMDP{
     const SparseModel::TransitionMatrix & SparseModel::getTransitionEndIndex() const { return trans_end_index_; }
     const SparseModel::RewardMatrix &     SparseModel::getRewardFunction()     const { return rewards_; }
     const SparseModel::ObservationMatrix & SparseModel::getObservationFunction() const { return observations_; }
-    const std::vector<bool> & SparseModel::getTerminationFunction() const { return terminations_; }
-    const std::vector<bool> & SparseModel::getViolationFunction() const { return violations_; }
 
     const SparseMatrix2D & SparseModel::getTransitionFunction(const size_t a) const { return transitions_[a]; }
     const SparseMatrix2D & SparseModel::getTransitionEndIndex(const size_t s1) const { return trans_end_index_[s1]; }
@@ -190,9 +171,6 @@ namespace MPC_POMDP{
         const size_t o = sampleProbability(O, observations_[a].row(s1), rand_);
         return std::make_tuple(s1, o, r);
     }
-
-    bool SparseModel::isTermination(const size_t s) const { return terminations_[s]; }
-    bool SparseModel::isViolation(const size_t s) const { return violations_[s]; }
 
     void SparseModel::updateTransEndIndex() {
         for ( size_t s1 = 0; s1 < S; ++s1 ) {

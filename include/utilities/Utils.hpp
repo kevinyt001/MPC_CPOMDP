@@ -2,7 +2,6 @@
 #define MPC_POMDP_UTILS_HEADER_FILE
 
 #include "DefTypes.hpp"
-#include "Model.hpp"
 
 namespace MPC_POMDP {
     /**

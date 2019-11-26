@@ -6,7 +6,8 @@
 #include <unordered_map>
 #include <functional>
 
-#include "Model.hpp"
+#include "models/DenseModel.hpp"
+#include "models/SparseModel.hpp"
 #include "DefTypes.hpp"
 
 namespace MPC_POMDP {

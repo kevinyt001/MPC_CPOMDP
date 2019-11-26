@@ -6,8 +6,8 @@
 
 #include <nlopt.hpp>
 
-#include "Model.hpp"
-#include "SparseModel.hpp"
+// #include "Model.hpp"
+#include "models/SparseModel.hpp"
 #include "SolverNLOPT.hpp"
 #include "utilities/CassandraParser.hpp"
 #include "IO.hpp"

@@ -4,8 +4,8 @@
 #include <iostream>
 #include <iomanip>
 
-#include "Model.hpp"
-#include "SparseModel.hpp"
+#include "models/DenseModel.hpp"
+#include "models/SparseModel.hpp"
 #include "DefTypes.hpp"
 #include "utilities/CassandraParser.hpp"
 
@@ -20,7 +20,7 @@ namespace MPC_POMDP {
      *
      * @return The parsed model.
      */
-    Model parseCassandra(std::istream & input);
+    DenseModel parseCassandra(std::istream & input);
 
     /**
      * @brief This function parses a POMDP from a Cassandra formatted stream.

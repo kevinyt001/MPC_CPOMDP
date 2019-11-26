@@ -6,8 +6,8 @@
 
 #include <nlopt.hpp>
 
-#include "Model.hpp"
-#include "SparseModel.hpp"
+// #include "Model.hpp"
+#include "modles/SparseModel.hpp"
 #include "SolverIPOPT.hpp"
 #include "IpIpoptApplication.hpp"
 #include "POMDP_NLP.hpp"

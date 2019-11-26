@@ -1,16 +1,17 @@
-#ifndef MPC_POMDP_MODEL_HEADER_FILE
-#define MPC_POMDP_MODEL_HEADER_FILE
+#ifndef MPC_POMDP_DENSE_MODEL_HEADER_FILE
+#define MPC_POMDP_DENSE_MODEL_HEADER_FILE
 
 #include <utility>
 #include <random>
 #include <vector>
 
 #include "DefTypes.hpp"
+#include "models/Model.hpp"
 #include "utilities/Seeder.hpp"
 #include "utilities/Probability.hpp"
 
 namespace MPC_POMDP {
-	class Model {
+	class DenseModel: public Model {
         public:
     		using TransitionMatrix = Matrix3D;
     		using RewardMatrix = Matrix2D;
@@ -19,7 +20,7 @@ namespace MPC_POMDP {
             /**
              * @brief Basic constructor.
              *
-             * This constructor initializes the Model so that all
+             * This constructor initializes the DenseModel so that all
              * transitions happen with probability 0 but for transitions
              * that bring back to the same state, no matter the action.
              *
@@ -31,20 +32,20 @@ namespace MPC_POMDP {
              * @param o The number of observations the agent could make.
              * @param discount The discount factor for the POMDP.
              */
-    		Model(size_t s, size_t a, size_t o, double discount = 1.0);
+    		DenseModel(size_t s, size_t a, size_t o, double discount = 1.0);
 
             /**
-             * @brief Copy constructor from any valid POMDP model.
+             * @brief Copy constructor from any valid POMDP DenseModel.
              *
-             * This allows to copy from any other model. A nice use for this is to
-             * convert any model which computes probabilities on the fly into a
-             * Model where probabilities are all stored for fast access. Of
+             * This allows to copy from any other DenseModel. A nice use for this is to
+             * convert any DenseModel which computes probabilities on the fly into a
+             * DenseModel where probabilities are all stored for fast access. Of
              * course such a solution can be done only when the number of states
              * and actions is not too big.
              *
-             * @param model The model that needs to be copied.
+             * @param model The DenseModel that needs to be copied.
              */
-            Model(const Model& model);
+            DenseModel(const DenseModel& model);
 
             /**
              * @brief Basic constructor.
@@ -86,7 +87,7 @@ namespace MPC_POMDP {
              * @param d  The discount factor for the POMDP model.
              */
             template <typename T, typename R, typename OM, typename TER, typename VIO>
-            Model(size_t s, size_t a, size_t o, const T & t, const R & r, 
+            DenseModel(size_t s, size_t a, size_t o, const T & t, const R & r, 
             	const OM & om, const TER & ter, const VIO & vio, double d = 1.0);
 
             /**
@@ -95,7 +96,7 @@ namespace MPC_POMDP {
              * This constructor takes ownership of the data that it is passed
              * to it to avoid any sorts of copies and additional work (sanity
              * checks), in order to speed up as much as possible the process of
-             * building a new Model.
+             * building a new DenseModel.
              *
              * Note that to use it you have to explicitly use the NO_CHECK tag
              * parameter first.
@@ -103,21 +104,19 @@ namespace MPC_POMDP {
              * @param s  The number of states of the world.
              * @param a  The number of actions available to the agent.
              * @param o  The number of observations available to the agent.
-             * @param t  The transition function to be used in the Model.
-             * @param r  The reward function to be used in the Model.
-             * @param om The observation function to be used in the Model.
-             * @param ter The termination function to be used in the Model.
-             * @param vio The violation function to be used in the Model.
-             * @param d  The discount factor for the Model.
+             * @param t  The transition function to be used in the DenseModel.
+             * @param r  The reward function to be used in the DenseModel.
+             * @param om The observation function to be used in the DenseModel.
+             * @param ter The termination function to be used in the DenseModel.
+             * @param vio The violation function to be used in the DenseModel.
+             * @param d  The discount factor for the DenseModel.
              */
-            Model(NoCheck, size_t s, size_t a, size_t o, TransitionMatrix && t, 
+            DenseModel(NoCheck, size_t s, size_t a, size_t o, TransitionMatrix && t, 
             	RewardMatrix && r, ObservationMatrix && om, std::vector<bool> & ter,
                   std::vector<bool> & vio, double d);
 
-            // ~Model();
-
             /**
-             * @brief This function replaces the Model transition function with the one provided.
+             * @brief This function replaces the DenseModel transition function with the one provided.
              *
              * This function will throw a std::invalid_argument if the
              * matrix provided does not contain valid probabilities.
@@ -158,7 +157,7 @@ namespace MPC_POMDP {
             void setTransitionFunction(const TransitionMatrix & t);
 
             /**
-             * @brief This function replaces the Model reward function with the one provided.
+             * @brief This function replaces the DenseModel reward function with the one provided.
              *
              * The container needs to support data access through
              * operator[]. In addition, the dimensions of the containers
@@ -191,7 +190,7 @@ namespace MPC_POMDP {
             void setRewardFunction(const RewardMatrix & r);
 
             /**
-             * @brief This function replaces the Model observation function with the one provided.
+             * @brief This function replaces the DenseModel observation function with the one provided.
              *
              * The container needs to support data access through
              * operator[]. In addition, the dimensions of the
@@ -211,7 +210,7 @@ namespace MPC_POMDP {
             void setObservationFunction(const OM & om);
 
             /**
-             * @brief This function replaces the Model observation function with the one provided.
+             * @brief This function replaces the DenseModel observation function with the one provided.
              *
              * The dimensions of the container must match the ones provided
              * as arguments (for three dimensions: A, S1, O). BE CAREFUL.
@@ -222,105 +221,6 @@ namespace MPC_POMDP {
              * @param om The external observation container.
              */
             void setObservationFunction(const ObservationMatrix & om);
-
-            /**
-             * @brief This function replaces the Model termination function with the one provided.
-             *
-             * The container needs to support data access through
-             * operator[]. In addition, the dimensions of the
-             * containers must match the ones provided as arguments
-             * (for one dimension: s).
-             *
-             * This is important, as this function DOES NOT perform
-             * any size checks on the external containers.
-             *
-             * Internal values of the container will be converted to bool,
-             * so these conversions must be possible.
-             *
-             * @tparam TER The external terminations container type.
-             * @param ter The external terminations container.
-             */
-            template <typename TER>
-            void setTerminationFunction(const TER & ter);
-
-            /**
-             * @brief This function replaces the Model termination function with the one provided.
-             *
-             * The dimensions of the container must match the ones provided
-             * as arguments (for one dimensions: S). BE CAREFUL.
-             *
-             * This function does will throw an std::invalid_argument if the size is not correct.
-             *
-             * @param ter The external termination container.
-             */
-            void setTerminationFunction(const std::vector<bool> & ter);
-
-            /**
-             * @brief This function replaces the Model violation function with the one provided.
-             *
-             * The container needs to support data access through
-             * operator[]. In addition, the dimensions of the
-             * containers must match the ones provided as arguments
-             * (for one dimension: s).
-             *
-             * This is important, as this function DOES NOT perform
-             * any size checks on the external containers.
-             *
-             * Internal values of the container will be converted to bool,
-             * so these conversions must be possible.
-             *
-             * @tparam VIO The external violations container type.
-             * @param vio The external terminations container.
-             */
-            template <typename VIO>
-            void setViolationFunction(const VIO & vio);
-
-            /**
-             * @brief This function replaces the Model violation function with the one provided.
-             *
-             * The dimensions of the container must match the ones provided
-             * as arguments (for one dimensions: S). BE CAREFUL.
-             *
-             * This function does will throw an std::invalid_argument if the size is not correct.
-             *
-             * @param vio The external violation container.
-             */
-            void setViolationFunction(const std::vector<bool> & vio);
-
-            /**
-             * @brief This function sets a new discount factor for the Model.
-             *
-             * @param d The new discount factor for the Model.
-             */
-            void setDiscount(double d);
-
-            /**
-             * @brief This function returns the number of states of the world.
-             *
-             * @return The total number of states.
-             */
-        	size_t getS() const;
-
-            /**
-             * @brief This function returns the number of available actions to the agent.
-             *
-             * @return The total number of actions.
-             */
-        	size_t getA() const;
-
-            /**
-             * @brief This function returns the number of observations the agent could make.
-             *
-             * @return The total number of observations.
-             */
-        	size_t getO() const;
-
-            /**
-             * @brief This function returns the currently set discount factor.
-             *
-             * @return The currently set discount factor.
-             */
-            double getDiscount() const;
 
             /**
              * @brief This function returns the stored transition probability for the specified transition.
@@ -412,34 +312,6 @@ namespace MPC_POMDP {
              * @return The observation function for the input action.
              */
             const Matrix2D & getObservationFunction(size_t a) const;
-
-            /**
-             * @brief This function returns the termination vector.
-             *
-             * @return The termination vector.
-             */
-            const std::vector<bool> & getTerminationFunction() const;
-            
-            /**
-             * @brief This function returns the violation vector.
-             *
-             * @return The violation vector.
-             */
-            const std::vector<bool> & getViolationFunction() const;
-
-            /**
-             * @brief This function checks wheter the given state is the termination.
-             *
-             * @return True if the state is the termination state.
-             */
-            bool isTermination(const size_t s) const;
-
-            /**
-             * @brief This function checks wheter the given state violates constraints.
-             *
-             * @return True if the state violate constraints.
-             */            
-            bool isViolation(const size_t s) const;
             
             /**
             * @brief This function propogates the POMDP for the specified state action pair.
@@ -465,8 +337,6 @@ namespace MPC_POMDP {
             std::tuple<size_t, size_t, double> propagateSOR(size_t s,size_t a) const;
 
         private:
-            size_t S, A, O;
-            double discount_;
 		      
             // Contain the transition probability from s0 to s1 by action a
             // with transitions_[a](s0, s1)
@@ -481,14 +351,6 @@ namespace MPC_POMDP {
             
             // Observation Matrix for each action is a probability distribution
             ObservationMatrix observations_; 
-            
-            // The termianal states will have value true with others having false
-            std::vector<bool> terminations_;
-            
-            // The constraints violation states have value true, and violation free states having false
-            std::vector<bool> violations_;
-
-            mutable RandomEngine rand_;
 
             /**
             * @brief This function updates trans_end_index according to transitions_
@@ -497,14 +359,12 @@ namespace MPC_POMDP {
 	};
 
     template <typename T, typename R, typename OM, typename TER, typename VIO>
-    Model::Model(const size_t s, const size_t a, const size_t o, const T & t, const R & r, 
+    DenseModel::DenseModel(const size_t s, const size_t a, const size_t o, const T & t, const R & r, 
         const OM & om, const TER & ter, const VIO & vio, const double d):
-            S(s), A(a), O(o), 
+            Model(s, a, o, d),
             transitions_(A, Matrix2D(S, S)), trans_end_index_(S, Matrix2D(A, S)),
-            rewards_(S, A), observations_(A, Matrix2D(S, O)),
-            terminations_(S, true), violations_(S, false), rand_(Seeder::getSeed())
+            rewards_(S, A), observations_(A, Matrix2D(S, O))
     {
-        setDiscount(d);
         setTransitionFunction(t);
         setRewardFunction(r);
         setObservationFunction(om);
@@ -513,7 +373,7 @@ namespace MPC_POMDP {
     }
 
     template <typename T>
-    void Model::setTransitionFunction(const T & t) {
+    void DenseModel::setTransitionFunction(const T & t) {
         for ( size_t s = 0; s < S; ++s )
             for ( size_t a = 0; a < A; ++a )
                 if ( !isProbability(S, t[s][a]) )
@@ -528,7 +388,7 @@ namespace MPC_POMDP {
     }
 
     template <typename R>
-    void Model::setRewardFunction(const R & r) {
+    void DenseModel::setRewardFunction(const R & r) {
         rewards_.setZero();
         for ( size_t s = 0; s < S; ++s )
             for ( size_t a = 0; a < A; ++a )
@@ -537,7 +397,7 @@ namespace MPC_POMDP {
     }
 
     template <typename OM>
-    void Model::setObservationFunction(const OM & om) {
+    void DenseModel::setObservationFunction(const OM & om) {
         for ( size_t s1 = 0; s1 < S; ++s1 )
             for ( size_t a = 0; a < A; ++a )
                 if ( !isProbability(O, om[s1][a]) )
@@ -547,24 +407,6 @@ namespace MPC_POMDP {
             for ( size_t a = 0; a < A; ++a )
                 for ( size_t o = 0; o < O; ++o )
                     observations_[a](s1, o) = om[s1][a][o];
-    }
-
-    template <typename TER>
-    void Model::setTerminationFunction(const TER & ter) {
-        terminations_.clear();
-        terminations_.resize(S);
-        for(size_t s = 0; s < S; ++s) {
-            terminations_[s] = ter[s];
-        }
-    }
-
-    template <typename VIO>
-    void Model::setViolationFunction(const VIO & vio) {
-        violations_.clear();
-        violations_.resize(S);
-        for(size_t s = 0; s < S; ++s) {
-            violations_[s] = vio[s];
-        }
     }
 }
 

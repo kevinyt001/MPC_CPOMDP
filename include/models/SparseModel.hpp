@@ -6,11 +6,12 @@
 #include <vector>
 
 #include "DefTypes.hpp"
+#include "models/Model.hpp"
 #include "utilities/Seeder.hpp"
 #include "utilities/Probability.hpp"
 
 namespace MPC_POMDP {
-	class SparseModel {
+	class SparseModel: public Model {
         public:
     		using TransitionMatrix = SparseMatrix3D;
     		using RewardMatrix = SparseMatrix2D;
@@ -115,8 +116,6 @@ namespace MPC_POMDP {
             SparseModel(NoCheck, size_t s, size_t a, size_t o, const TransitionMatrix & t, 
                   const RewardMatrix & r, const ObservationMatrix & om, const std::vector<bool> & ter,
                   const std::vector<bool> & vio, double d);
-
-            // ~Model();
 
             /**
              * @brief This function replaces the SparseModel transition function with the one provided.
@@ -226,105 +225,6 @@ namespace MPC_POMDP {
             void setObservationFunction(const ObservationMatrix & om);
 
             /**
-             * @brief This function replaces the Model termination function with the one provided.
-             *
-             * The container needs to support data access through
-             * operator[]. In addition, the dimensions of the
-             * containers must match the ones provided as arguments
-             * (for one dimension: s).
-             *
-             * This is important, as this function DOES NOT perform
-             * any size checks on the external containers.
-             *
-             * Internal values of the container will be converted to double,
-             * so these conversions must be possible.
-             *
-             * @tparam TER The external terminations container type.
-             * @param ter The external terminations container.
-             */
-            template <typename TER>
-            void setTerminationFunction(const TER & ter);
-
-            /**
-             * @brief This function replaces the Model termination function with the one provided.
-             *
-             * The dimensions of the container must match the ones provided
-             * as arguments (for one dimensions: S). BE CAREFUL.
-             *
-             * This function does will throw an invalid argument if the size is not correct.
-             *
-             * @param ter The external termination container.
-             */
-            void setTerminationFunction(const std::vector<bool> & ter);
-
-            /**
-             * @brief This function replaces the Model violation function with the one provided.
-             *
-             * The container needs to support data access through
-             * operator[]. In addition, the dimensions of the
-             * containers must match the ones provided as arguments
-             * (for one dimension: s).
-             *
-             * This is important, as this function DOES NOT perform
-             * any size checks on the external containers.
-             *
-             * Internal values of the container will be converted to double,
-             * so these conversions must be possible.
-             *
-             * @tparam VIO The external violations container type.
-             * @param vio The external terminations container.
-             */
-            template <typename VIO>
-            void setViolationFunction(const VIO & vio);
-
-            /**
-             * @brief This function replaces the Model violation function with the one provided.
-             *
-             * The dimensions of the container must match the ones provided
-             * as arguments (for one dimensions: S). BE CAREFUL.
-             *
-             * This function does will throw an invalid argument if the size is not correct.
-             *
-             * @param vio The external violation container.
-             */
-            void setViolationFunction(const std::vector<bool> & vio);
-
-            /**
-             * @brief This function sets a new discount factor for the Model.
-             *
-             * @param d The new discount factor for the Model.
-             */
-            void setDiscount(double d);
-
-            /**
-             * @brief This function returns the number of states of the world.
-             *
-             * @return The total number of states.
-             */
-        	size_t getS() const;
-
-            /**
-             * @brief This function returns the number of available actions to the agent.
-             *
-             * @return The total number of actions.
-             */
-        	size_t getA() const;
-
-            /**
-             * @brief This function returns the number of observations the agent could make.
-             *
-             * @return The total number of observations.
-             */
-        	size_t getO() const;
-
-            /**
-             * @brief This function returns the currently set discount factor.
-             *
-             * @return The currently set discount factor.
-             */
-            double getDiscount() const;
-
-            /**
              * @brief This function returns the stored transition probability for the specified transition.
              *
              * @param s The initial state of the transition.
@@ -333,7 +233,7 @@ namespace MPC_POMDP {
              *
              * @return The probability of the specified transition.
              */
-        	double getTransitionProbability(size_t s, size_t a, size_t s1) const;
+            double getTransitionProbability(size_t s, size_t a, size_t s1) const;
 
             /**
              * @brief This function returns the stored expected reward for the specified transition.
@@ -344,7 +244,7 @@ namespace MPC_POMDP {
              *
              * @return The expected reward of the specified transition.
              */
-        	double getExpectedReward(size_t s, size_t a, size_t s1) const;
+            double getExpectedReward(size_t s, size_t a, size_t s1) const;
 
             /**
              * @brief This function returns the stored observation probability for the specified state-action pair.
@@ -356,7 +256,7 @@ namespace MPC_POMDP {
              * @return The probability of the specified observation.
              */
             double getObservationProbability(size_t s1, size_t a, size_t o) const;
-
+            
             /**
              * @brief This function returns the transition matrix for inspection.
              *
@@ -413,33 +313,6 @@ namespace MPC_POMDP {
             const SparseMatrix2D & getObservationFunction(size_t a) const;
 
             /**
-             * @brief This function returns the termination vector.
-             *
-             * @return The termination vector.
-             */
-            const std::vector<bool> & getTerminationFunction() const;
-            
-            /**
-             * @brief This function returns the termination vector.
-             *
-             * @return The termination vector.
-             */
-            const std::vector<bool> & getViolationFunction() const;
-
-            /**
-             * @brief This function checks wheter the given state is the termination.
-             *
-             * @return True if the state is the termination state.
-             */
-            bool isTermination(const size_t s) const;
-
-            /**
-             * @brief This function checks wheter the given state violates constraints.
-             *
-             * @return True if the state violate constraints.
-             */            
-            bool isViolation(const size_t s) const;
-            /**
             * @brief This function propogates the POMDP for the specified state action pair.
             *
             * This function propagates the model for simulated experience. The
@@ -462,10 +335,7 @@ namespace MPC_POMDP {
             */
             std::tuple<size_t, size_t, double> propagateSOR(size_t s,size_t a) const;
 
-        private:
-            size_t S, A, O;
-            double discount_;
-		      
+        private:      
             // Contain the transition probability from s0 to s1 by action a
             // with transitions_[a](s0, s1)
             TransitionMatrix transitions_;
@@ -476,13 +346,6 @@ namespace MPC_POMDP {
             RewardMatrix rewards_; 
             // Observation Matrix for each action is a probability distribution
             ObservationMatrix observations_; 
-            // The termianal states will have value true with others having false
-            std::vector<bool> terminations_;
-            // The constraints violation states have value true, 
-            // and violation free states having false
-            std::vector<bool> violations_;
-
-            mutable RandomEngine rand_;
 
             /**
             * @brief This function updates trans_end_index according to transitions_
@@ -493,12 +356,10 @@ namespace MPC_POMDP {
     template <typename T, typename R, typename OM, typename TER, typename VIO>
     SparseModel::SparseModel(const size_t s, const size_t a, const size_t o, const T & t, const R & r, 
         const OM & om, const TER & ter, const VIO & vio, const double d):
-            S(s), A(a), O(o), 
+            Model(s, a, o, d),
             transitions_(A, SparseMatrix2D(S, S)), trans_end_index_(S, SparseMatrix2D(A, S)),
-            rewards_(S, A), observations_(A, SparseMatrix2D(S, O)),
-            terminations_(S, true), violations_(S, false), rand_(Seeder::getSeed())
+            rewards_(S, A), observations_(A, SparseMatrix2D(S, O))
     {
-        setDiscount(d);
         setTransitionFunction(t);
         setRewardFunction(r);
         setObservationFunction(om);
@@ -557,24 +418,6 @@ namespace MPC_POMDP {
                     if ( checkDifferentSmall(0.0, p) ) observations_[a].insert(s1, o) = p;
             }
             observations_[a].makeCompressed();
-        }
-    }
-
-    template <typename TER>
-    void SparseModel::setTerminationFunction(const TER & ter) {
-        terminations_.clear();
-        terminations_.resize(S);
-        for(size_t s = 0; s < S; ++s) {
-            terminations_[s] = ter[s];
-        }
-    }
-
-    template <typename VIO>
-    void SparseModel::setViolationFunction(const VIO & vio) {
-        violations_.clear();
-        violations_.resize(S);
-        for(size_t s = 0; s < S; ++s) {
-            violations_[s] = vio[s];
         }
     }
 }
