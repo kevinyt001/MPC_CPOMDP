@@ -76,7 +76,32 @@ namespace MPC_POMDP {
              */
             POMDPVals parsePOMDP(std::istream & input);
 
-            SparsePOMDPVals parsePOMDP_Sparse(std::istream & input);
+            /**
+             * @brief This function parses the input following Cassandra's rules.
+             *
+             * This function only parses for information regarding an pomdp, so
+             * number of states, number of actions, number of observations,
+             * discount and transition/reward/observation functions as well as
+             * termination/violation functions.
+             *
+             * This function directly parsed the information to Sparse Matrices
+             * to save memory for large scale models. Note that, in order to 
+             * properly load the model rewards function, the transitions of the
+             * model needs to be completely specified before rewards.
+             *
+             * Any problems during parsing result in an std::runtime_error.
+             *
+             * The output is returned as a set of values which if needed can be
+             * used to build an MPC_POMDP::SparseModel.
+             *
+             * No checks are done here regarding the consistency of the read
+             * data (transition probabilities, etc).
+             *
+             * @param input The input stream to parse.
+             *
+             * @return A tuple containing the information of the parsed POMDP.
+             */
+            SparsePOMDPVals parsePOMDPSparse(std::istream & input);
 
         private:
             /**
@@ -98,6 +123,9 @@ namespace MPC_POMDP {
              */
             void initMatrices();
 
+            /**
+             * @brief This function zeroes the local sparse function matrices from read data.
+             */
             void initSparseMatrices();
 
             /**
@@ -175,7 +203,24 @@ namespace MPC_POMDP {
              */
             void processMatrix(DumbMatrix3D & M, const IDMap & d1map, const IDMap & d3map);
             
-            void processSparseMatrix(SparseMatrix3D & M, const IDMap & d1map, const IDMap & d3map);
+            /**
+             * @brief This function parses an entry for a specific sparse matrix.
+             *
+             * This function is used for both transition and observation
+             * functions, since the syntax for both is the same.
+             *
+             * Current implementation only supports 3 commas input streams, 
+             * i.e. transition is T : <action> : <start-state> : <end-state> <prob>
+             * observation is O : <action> : <end-state> : <observation> <prob>
+             *
+             * Since both are indexed by action in the same way, we don't need
+             * input for that.
+             *
+             * @param M The matrix to be read in.
+             * @param d2map The list of id string tokens for the second dimension of the matrix.
+             * @param d3map The list of id string tokens for the third dimension of the matrix.
+             */
+            void processSparseMatrix(SparseMatrix3D & M, const IDMap & d2map, const IDMap & d3map);
 
             /**
              * @brief This function processes a reward function entry.
@@ -185,6 +230,16 @@ namespace MPC_POMDP {
              */
             void processReward();
 
+            /**
+             * @brief This function processes a sparse reward function entry.
+             *
+             * We only support entries that do not specify observations, and
+             * thus, per syntax, must specify values one by one.
+             * 
+             * The rewards matrix is parsed as the expected reward at state s0
+             * taking action a. Thus transition functions are used, which
+             * requires the input stream to fully specify transtion first.
+             */
             void processSparseReward();
 
             /**

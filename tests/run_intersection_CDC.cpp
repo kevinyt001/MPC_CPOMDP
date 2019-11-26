@@ -8,7 +8,7 @@
 
 #include "Model.hpp"
 #include "SparseModel.hpp"
-#include "Solver.hpp"
+#include "SolverNLOPT.hpp"
 #include "utilities/CassandraParser.hpp"
 #include "IO.hpp"
 #include "utilities/Core.hpp"
@@ -23,7 +23,7 @@ int main() {
 
 	int horizon = 3;
 	double epsilon = 0.01;
-	MPC_POMDP::POMDPSolver solver(horizon, epsilon);
+	MPC_POMDP::POMDPSolver_NLOPT solver(horizon, epsilon);
 
 	size_t init_state = 3969;
 	size_t init_state_2 = 0;

@@ -24,7 +24,7 @@ namespace MPC_POMDP {
      * belief.
      */
 
-	class POMDPSolver {
+	class POMDPSolver_NLOPT {
 		public:
 			/**
              * @brief Basic constructor.
@@ -38,7 +38,7 @@ namespace MPC_POMDP {
              * @param e The epsilon chosen. (Chance constraints parameter.)
              */
 
-			POMDPSolver(int h, double e);
+			POMDPSolver_NLOPT(int h, double e);
 
             /**
              * @brief This function allows setting the horizon parameter.
@@ -129,7 +129,7 @@ namespace MPC_POMDP {
 	};
 
     template<typename M, typename B>
-    void POMDPSolver::operator()(const M & model, const size_t init_state, B& belief) {
+    void POMDPSolver_NLOPT::operator()(const M & model, const size_t init_state, B& belief) {
         S = model.getS();
         A = model.getA();
         O = model.getO();
@@ -242,7 +242,7 @@ namespace MPC_POMDP {
     }
 
     template<typename M, typename B>
-    double POMDPSolver::cost(const std::vector<double> &gamma, std::vector<double> &grad, 
+    double POMDPSolver_NLOPT::cost(const std::vector<double> &gamma, std::vector<double> &grad, 
         void* fdata) {
         if (!grad.empty()) {
             std::fill(grad.begin(), grad.end(), 0);
@@ -340,7 +340,7 @@ namespace MPC_POMDP {
     }
 
     template<typename M, typename B>
-    double POMDPSolver::ineq_con(const std::vector<double> &gamma, std::vector<double> &grad, 
+    double POMDPSolver_NLOPT::ineq_con(const std::vector<double> &gamma, std::vector<double> &grad, 
         void* cdata) {
         if (!grad.empty()) {
             std::fill(grad.begin(), grad.end(), 0);
@@ -442,7 +442,7 @@ namespace MPC_POMDP {
     }
 
     template<typename M>
-    double POMDPSolver::eq_con(const std::vector<double> &gamma, std::vector<double> &grad, 
+    double POMDPSolver_NLOPT::eq_con(const std::vector<double> &gamma, std::vector<double> &grad, 
         void* cdata) {
         if (!grad.empty()) {
             std::invalid_argument("Optimization solver should be derivative free");
@@ -464,7 +464,7 @@ namespace MPC_POMDP {
     }
 
     template<typename M>
-    void POMDPSolver::eq_con_vec(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
+    void POMDPSolver_NLOPT::eq_con_vec(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
         EqConData<M> *ed = reinterpret_cast<EqConData<M>*>(cdata);
         const M & m = ed->model; int h = ed->horizon;
 
@@ -490,7 +490,7 @@ namespace MPC_POMDP {
     }
 
     template<typename M>
-    void POMDPSolver::ineq_con_vec(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
+    void POMDPSolver_NLOPT::ineq_con_vec(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
         EqConData<M> *ed = reinterpret_cast<EqConData<M>*>(cdata);
         const M & m = ed->model; int h = ed->horizon;
 
@@ -516,7 +516,7 @@ namespace MPC_POMDP {
     }
 
     template<typename M>
-    void POMDPSolver::ineq_con_vec_2(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
+    void POMDPSolver_NLOPT::ineq_con_vec_2(unsigned int ms, double* result, unsigned int n, const double* gamma, double* grad, void* cdata) {
         EqConData<M> *ed = reinterpret_cast<EqConData<M>*>(cdata);
         const M & m = ed->model; int h = ed->horizon;
 

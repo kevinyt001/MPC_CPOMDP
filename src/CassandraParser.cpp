@@ -95,7 +95,7 @@ namespace MPC_POMDP {
         return POMDPVals(S, A, O, T, R, W, TER, VIO, discount);
     }
 
-    CassandraParser::SparsePOMDPVals CassandraParser::parsePOMDP_Sparse(std::istream & input) {
+    CassandraParser::SparsePOMDPVals CassandraParser::parsePOMDPSparse(std::istream & input) {
         // Parse preamble.
         parseModelInfo(input);
 
@@ -336,7 +336,7 @@ namespace MPC_POMDP {
         }
     }
 
-    void CassandraParser::processSparseMatrix(SparseMatrix3D & M, const IDMap & d1map, const IDMap & d3map) {
+    void CassandraParser::processSparseMatrix(SparseMatrix3D & M, const IDMap & d2map, const IDMap & d3map) {
         const std::string & str = lines_[i_];
 
         const size_t D2 = M[0].rows();
@@ -350,7 +350,7 @@ namespace MPC_POMDP {
 
                 // Action is first both in transition and observation
                 const auto av  = parseIndeces(tokens.at(1), actionMap_, A);
-                const auto d2v = parseIndeces(tokens.at(2), d1map, D2);
+                const auto d2v = parseIndeces(tokens.at(2), d2map, D2);
                 const auto d3v = parseIndeces(tokens.at(3), d3map, D3);
                 const auto val = std::stod(tokens.at(4));
 

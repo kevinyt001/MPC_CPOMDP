@@ -8,7 +8,6 @@
 
 #include "Model.hpp"
 #include "SparseModel.hpp"
-#include "Solver.hpp"
 #include "SolverIPOPT.hpp"
 #include "IpIpoptApplication.hpp"
 #include "POMDP_NLP.hpp"

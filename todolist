@@ -1,8 +1,10 @@
 Todo
 
-Develop IO with sparse matrices directly. 
+Write ipopt solver with template
 
-Derive analytical gradient
+Write class inheritance of model and solver
 
-Use ipopt or snopt with numerical gradient or analytical gradient
+Let ipopt output to files
+
+Use ipopt with analytical gradient
 
