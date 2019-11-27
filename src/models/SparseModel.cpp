@@ -1,4 +1,4 @@
-#include "SparseModel.hpp"
+#include "models/SparseModel.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -6,7 +6,7 @@
 namespace MPC_POMDP{
 
 	SparseModel::SparseModel(const size_t s, const size_t a, const size_t o, const double discount):
-            Model(s, a, o, d),
+            Model(s, a, o, discount),
             transitions_(A, SparseMatrix2D(S, S)), trans_end_index_(S, SparseMatrix2D(A, S)), 
             rewards_(S, A), observations_(A, SparseMatrix2D(S, O))
 	{

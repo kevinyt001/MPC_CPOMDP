@@ -20,7 +20,7 @@ namespace params
 {
 	extern std::string file_name;
 	extern int horizon;
-	extern int epsilon;
+	extern double epsilon;
 	extern int start_state;
 	extern std::vector<int> start_belief;
 	extern std::string solver_type;

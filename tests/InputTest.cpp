@@ -7,7 +7,7 @@
 
 #include <nlopt.hpp>
 
-#include "Model.hpp"
+#include "models/DenseModel.hpp"
 #include "utilities/CassandraParser.hpp"
 #include "IO.hpp"
 #include "utilities/Core.hpp"
@@ -17,7 +17,7 @@ int main() {
 	std::ifstream ifs;
 	ifs.open("../input/overtake.POMDP", std::ifstream::in);
 
-	MPC_POMDP::Model overtake = MPC_POMDP::parseCassandra(ifs);
+	MPC_POMDP::DenseModel overtake = MPC_POMDP::parseCassandra(ifs);
 
 	std::ofstream ofs;
 	ofs.open("test_input.POMDP", std::ofstream::out);

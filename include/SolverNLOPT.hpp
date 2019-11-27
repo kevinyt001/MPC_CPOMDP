@@ -7,7 +7,8 @@
 #include <time.h>       /* clock_t, clock, CLOCKS_PER_SEC */
 #include <nlopt.hpp>
 
-#include "Model.hpp"
+#include "models/DenseModel.hpp"
+#include "models/SparseModel.hpp"
 #include "utilities/Seeder.hpp"
 #include "utilities/Utils.hpp"
 

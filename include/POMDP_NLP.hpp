@@ -2,7 +2,8 @@
 #define MPC_POMDP_POMDP_NLP_HEADER_FILE
 
 #include "IpTNLP.hpp"
-#include "SparseModel.hpp"
+#include "models/SparseModel.hpp"
+#include "models/DenseModel.hpp"
 #include "DefTypes.hpp"
 
 using namespace Ipopt;

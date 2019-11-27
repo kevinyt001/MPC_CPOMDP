@@ -1,9 +1,9 @@
-#include "Model.hpp"
+#include "models/DenseModel.hpp"
 
 namespace MPC_POMDP{
 
 	DenseModel::DenseModel(const size_t s, const size_t a, const size_t o, const double discount):
-            Model(s, a, o, d),
+            Model(s, a, o, discount),
             transitions_(A, Matrix2D(S, S)), trans_end_index_(S, Matrix2D(A, S)), 
             rewards_(S, A), observations_(A, Matrix2D(S, O))
 	{
@@ -97,6 +97,18 @@ namespace MPC_POMDP{
 
 		observations_ = om;
 	}
+
+    double DenseModel::getTransitionProbability(const size_t s, const size_t a, const size_t s1) const {
+        return transitions_[a](s, s1);
+    }
+
+    double DenseModel::getExpectedReward(const size_t s, const size_t a, const size_t) const {
+        return rewards_(s, a);
+    }
+
+    double DenseModel::getObservationProbability(const size_t s1, const size_t a, const size_t o) const {
+        return observations_[a](s1, o);
+    }
 
     const DenseModel::TransitionMatrix & DenseModel::getTransitionFunction() const { return transitions_; }
     const DenseModel::TransitionMatrix & DenseModel::getTransitionEndIndex() const { return trans_end_index_; }

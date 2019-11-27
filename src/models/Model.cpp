@@ -1,4 +1,4 @@
-#include "Model.hpp"
+#include "models/Model.hpp"
 
 namespace MPC_POMDP{
 

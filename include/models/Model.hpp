@@ -30,7 +30,7 @@ namespace MPC_POMDP {
              */
     		Model(size_t s, size_t a, size_t o, double discount = 1.0);
 
-            virtual ~Model() {}
+            virtual ~Model() {};
 
             /**
              * @brief This function replaces the Model termination function with the one provided.
@@ -218,7 +218,7 @@ namespace MPC_POMDP {
             */
             virtual std::tuple<size_t, size_t, double> propagateSOR(size_t s,size_t a) const = 0;
 
-        private:
+        protected:
             size_t S, A, O;
             double discount_;
             

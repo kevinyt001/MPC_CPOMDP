@@ -3,9 +3,6 @@
 #include <cassert>
 #include <iostream>
 
-#include "SparseModel.hpp"
-#include "DefTypes.hpp"
-
 using namespace Ipopt;
 
 #ifdef __GNUC__

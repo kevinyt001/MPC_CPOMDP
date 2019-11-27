@@ -7,8 +7,8 @@
 #include <time.h>       /* clock_t, clock, CLOCKS_PER_SEC */
 #include <nlopt.hpp>
 
-#include "SparseModel.hpp"
-#include "Model.hpp"
+#include "models/SparseModel.hpp"
+#include "models/DenseModel.hpp"
 #include "POMDP_NLP.hpp"
 #include "IpIpoptApplication.hpp"
 #include "IpSolveStatistics.hpp"
@@ -172,7 +172,7 @@ namespace MPC_POMDP {
             std::cout << "Step: " << timestep << std::endl;
             std::cout << "Computational time for this step is : " << (double) t/CLOCKS_PER_SEC << std::endl;
 
-            // assert(false);
+            assert(false);
 
             // std::cout << "Cost: " << cost_temp << std::endl;
             ofs << "Step: " << timestep << std::endl;
