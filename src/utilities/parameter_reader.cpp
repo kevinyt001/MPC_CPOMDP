@@ -6,10 +6,10 @@
 namespace params
 {
 	std::string file_name;
-	int horizon;
+	size_t horizon;
 	double epsilon;
-	int start_state;
-	std::vector<int> start_belief;
+	size_t start_state;
+	std::vector<size_t> start_belief;
 	std::string solver_type;
 	std::string model_type;
 	std::string model_scale;
@@ -30,9 +30,9 @@ void read_parameters(int ac, char* av[])
 	" override the ones in the config file. A config file may contain lines with syntax" 
 	"\n'long_option_name = value'\nand comment lines that begin with '#'." )
 	("file_name",po::value<std::string>(&params::file_name),"Location and name of the file containing the model information in cassandra format.") 
-	("horizon",po::value<int>(&params::horizon),"Horizon of MPC POMDP to solve the optimal control distribution (horizon >= 1).") 
+	("horizon",po::value<size_t>(&params::horizon),"Horizon of MPC POMDP to solve the optimal control distribution (horizon >= 1).") 
 	("epsilon",po::value<double>(&params::epsilon),"Chance constraints rate (0 <= epsilon <= 1).") 
-	("start_state",po::value<int>(&params::start_state),"Start state index of the system.") 
+	("start_state",po::value<size_t>(&params::start_state),"Start state index of the system.") 
 	("start_belief",po::value<std::string>(),"The start belief index of the system. Belief is evenly distributed. Input is in the format of \"0 1\"") 
 	("solver_type",po::value<std::string>(&params::solver_type),"Type of solver to use (ipopt or nlopt).") 
 	("model_type",po::value<std::string>(&params::model_type),"Type of model to use (dense or sparse).") 
@@ -64,11 +64,11 @@ void read_parameters(int ac, char* av[])
 	  } 
 	} 
 
-	std::vector<double> belief;
+	std::vector<size_t> belief;
 	if (varmap.count("start_belief")) 
 	{
 		std::stringstream stream(varmap["start_belief"].as<std::string>());
-		double n; while(stream >> n) {belief.push_back(n);}
+		size_t n; while(stream >> n) {belief.push_back(n);}
 		// belief = varmap["start_belief"].as<std::vector<double> >();
 		params::start_belief.resize(belief.size());
 		for(unsigned i=0;i<belief.size();i++)

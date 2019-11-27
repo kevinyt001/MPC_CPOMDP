@@ -39,8 +39,6 @@ if ( NOT NLOPT_FOUND)
 endif()
 include_directories(SYSTEM ${NLOPT_INCLUDE_DIRS})
 
-#set(IPOPT_INCLUDE_DIRs /home/kaiwen/CoinIpopt/build/include/coin/*)
-#find_package(IPOPT PATHS /home/kaiwen/CoinIpopt/* NO_DEFAULT_PATH)
 find_package(IPOPT REQUIRED)
 if ( NOT IPOPT_FOUND)
 	message(STATUS "This project requires the IPOPT library, and will not be compiled.")

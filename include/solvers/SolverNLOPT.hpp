@@ -1,5 +1,5 @@
-#ifndef MPC_POMDP_SOLVER_HEADER_FILE
-#define MPC_POMDP_SOLVER_HEADER_FILE
+#ifndef MPC_POMDP_SOLVER_NLOPT_HEADER_FILE
+#define MPC_POMDP_SOLVER_NLOPT_HEADER_FILE
 
 #include <iostream>
 #include <fstream>
@@ -9,6 +9,7 @@
 
 #include "models/DenseModel.hpp"
 #include "models/SparseModel.hpp"
+#include "solvers/Solver.hpp"
 #include "utilities/Seeder.hpp"
 #include "utilities/Utils.hpp"
 
@@ -25,9 +26,9 @@ namespace MPC_POMDP {
      * belief.
      */
 
-	class POMDPSolver_NLOPT {
+	class POMDPSolver_NLOPT: public POMDPSolver {
 		public:
-			/**
+            /**
              * @brief Basic constructor.
              *
              * This constructor sets the default horizon used to solve a MPC_POMDP::Model.
@@ -39,36 +40,9 @@ namespace MPC_POMDP {
              * @param e The epsilon chosen. (Chance constraints parameter.)
              */
 
-			POMDPSolver_NLOPT(int h, double e);
-
-            /**
-             * @brief This function allows setting the horizon parameter.
-             *
-             * @param h The new horizon parameter.
-             */
-			void setHorizon(int h);
-
-            /**
-             * @brief This function returns the currently set horizon parameter.
-             *
-             * @return The current horizon.
-             */
-            int getHorizon() const;
-
-            /**
-             * @brief This function allows setting the epsilon parameter.
-             *
-             * @param h The new horizon parameter.
-             */
-            void setEpsilon(double e);
-
-            /**
-             * @brief This function returns the currently set epsilon parameter.
-             *
-             * @return The current epsilon.
-             */
-            double getEpsilon() const;
-
+            POMDPSolver_NLOPT(int h, double e):
+                POMDPSolver(h, e) {};
+            
             /**
              * @brief This function solves a MPC_POMDP::Model or 
              * MPC_POMDP::SparseModel completely.
@@ -89,12 +63,6 @@ namespace MPC_POMDP {
             void operator()(const M & model, const size_t init_state, B& belief);
 
         private:
-        	size_t S, A, O;
-        	int horizon_;
-        	double epsilon_;
-
-        	mutable RandomEngine rand_;
-
             template<typename M, typename B>
         	static double cost(const std::vector<double> &gamma, std::vector<double> &grad, void* fdata);
 

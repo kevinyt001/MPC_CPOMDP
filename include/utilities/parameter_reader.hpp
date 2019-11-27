@@ -19,10 +19,10 @@
 namespace params
 {
 	extern std::string file_name;
-	extern int horizon;
+	extern size_t horizon;
 	extern double epsilon;
-	extern int start_state;
-	extern std::vector<int> start_belief;
+	extern size_t start_state;
+	extern std::vector<size_t> start_belief;
 	extern std::string solver_type;
 	extern std::string model_type;
 	extern std::string model_scale;

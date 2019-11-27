@@ -20,7 +20,7 @@ namespace MPC_POMDP {
      *
      * @return The parsed model.
      */
-    DenseModel parseCassandra(std::istream & input);
+    DenseModel* parseCassandra(std::istream & input);
 
     /**
      * @brief This function parses a POMDP from a Cassandra formatted stream.
@@ -32,7 +32,7 @@ namespace MPC_POMDP {
      *
      * @return The parsed sparse model.
      */
-    SparseModel parseCassandraSparse(std::istream & input);
+    SparseModel* parseCassandraSparse(std::istream & input);
 
     /**
      * @brief This function parses a POMDP from a Cassandra formatted stream
@@ -52,7 +52,7 @@ namespace MPC_POMDP {
      *
      * @return The parsed sparse model.
      */
-    SparseModel parseCassandraLarge(std::istream & input);
+    SparseModel* parseCassandraLarge(std::istream & input);
 
 }
 

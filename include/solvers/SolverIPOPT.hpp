@@ -5,15 +5,16 @@
 #include <fstream>
 #include <algorithm>
 #include <time.h>       /* clock_t, clock, CLOCKS_PER_SEC */
-#include <nlopt.hpp>
 
 #include "models/SparseModel.hpp"
 #include "models/DenseModel.hpp"
-#include "POMDP_NLP.hpp"
-#include "IpIpoptApplication.hpp"
-#include "IpSolveStatistics.hpp"
+#include "solvers/Solver.hpp"
+#include "solvers/POMDP_NLP.hpp"
 #include "utilities/Seeder.hpp"
 #include "utilities/Utils.hpp"
+
+#include "IpIpoptApplication.hpp"
+#include "IpSolveStatistics.hpp"
 
 namespace MPC_POMDP {
     /**
@@ -28,9 +29,9 @@ namespace MPC_POMDP {
      * belief.
      */
 
-	class POMDPSolver_IPOPT {
+	class POMDPSolver_IPOPT: public POMDPSolver {
 		public:
-			/**
+            /**
              * @brief Basic constructor.
              *
              * This constructor sets the default horizon used to solve a MPC_POMDP::Model.
@@ -42,35 +43,8 @@ namespace MPC_POMDP {
              * @param e The epsilon chosen. (Chance constraints parameter.)
              */
 
-			POMDPSolver_IPOPT(int h, double e);
-
-            /**
-             * @brief This function allows setting the horizon parameter.
-             *
-             * @param h The new horizon parameter.
-             */
-			void setHorizon(int h);
-
-            /**
-             * @brief This function returns the currently set horizon parameter.
-             *
-             * @return The current horizon.
-             */
-            int getHorizon() const;
-
-            /**
-             * @brief This function allows setting the epsilon parameter.
-             *
-             * @param h The new horizon parameter.
-             */
-            void setEpsilon(double e);
-
-            /**
-             * @brief This function returns the currently set epsilon parameter.
-             *
-             * @return The current epsilon.
-             */
-            double getEpsilon() const;
+            POMDPSolver_IPOPT(int h, double e):
+                POMDPSolver(h, e) {};
 
             /**
              * @brief This function solves a MPC_POMDP::Model or 
@@ -88,18 +62,12 @@ namespace MPC_POMDP {
              * @param init_state The initial state to start propagation.
              * @param belief Dense vector of the initial state probability pdistribution.
              */
-            // template<typename M, typename B>
-            void operator()(const SparseModel & model, const size_t init_state, Belief & belief);
-
-        private:
-        	size_t S, A, O;
-        	int horizon_;
-        	double epsilon_;
-
-        	mutable RandomEngine rand_;
+            template<typename M, typename B>
+            void operator()(const M & model, const size_t init_state, B & belief);
 	};
 
-    void POMDPSolver_IPOPT::operator()(const SparseModel & model, const size_t init_state, Belief & belief) {
+    template<typename M, typename B>
+    void POMDPSolver_IPOPT::operator()(const M & model, const size_t init_state, B & belief) {
         S = model.getS();
         A = model.getA();
         O = model.getO();
@@ -111,7 +79,7 @@ namespace MPC_POMDP {
 
         // Create a new instance of your nlp
         //  (use a SmartPtr, not raw)
-        SmartPtr<TNLP> mynlp = new POMDP_NLP(model, belief, horizon_, epsilon_);
+        SmartPtr<TNLP> mynlp = new POMDP_NLP<M, B>(model, belief, horizon_, epsilon_);
 
         // Create a new instance of IpoptApplication
         //  (use a SmartPtr, not raw)
@@ -209,27 +177,6 @@ namespace MPC_POMDP {
 
         ofs.close();
         return;
-    }
-
-    POMDPSolver_IPOPT::POMDPSolver_IPOPT(const int h, const double e) :
-    rand_(Seeder::getSeed())
-    {
-        setHorizon(h);
-        setEpsilon(e);
-    }
-
-    void POMDPSolver_IPOPT::setHorizon(const int h) {
-        if ( h < 1 ) throw std::invalid_argument("Horizon must be >= 1");
-        horizon_ = h;
-    }
-
-    void POMDPSolver_IPOPT::setEpsilon(const double e) {
-        if(e > 1 || e < 0) throw std::invalid_argument("Epsilon must be >= 0 and <= 1");
-        epsilon_ = e;
-    }
-
-    int POMDPSolver_IPOPT::getHorizon() const {
-        return horizon_;
     }
 }
 
