@@ -76,13 +76,13 @@ namespace MPC_POMDP {
       assert(n == horizon_ * m_.getA());
       assert(m == 1 + horizon_);
 
-      // the variables have lower bounds of 1
+      // the variables have lower bounds of 0
       for( Index i = 0; i < n; i++ )
       {
          x_l[i] = 0.0;
       }
 
-      // the variables have upper bounds of 5
+      // the variables have upper bounds of 1
       for( Index i = 0; i < n; i++ )
       {
          x_u[i] = 1.0;
@@ -241,19 +241,19 @@ namespace MPC_POMDP {
       g[0] = 0;
       for (int i = 0; i < horizon_; ++i) {
          Belief temp = predict_belief;
-         Vector g(m_.getA());
+         Vector temp_g(m_.getA());
          for (size_t j = 0; j < m_.getA(); ++j) 
-             g(j) = x[i*m_.getA()+j];
+             temp_g(j) = x[i*m_.getA()+j];
 
          // Update belief 
          //Update together
          predict_belief.setZero();
          for(size_t j = 0; j < m_.getA(); ++j) {
-           predict_belief.noalias() += Eigen::VectorXd(g(j) * m_.getTransitionFunction(j).transpose() * temp);
+           predict_belief.noalias() += Eigen::VectorXd(temp_g(j) * m_.getTransitionFunction(j).transpose() * temp);
          }
 
          for (size_t j = 0; j < m_.getS(); ++j) {
-           if(checkDifferentSmall(predict_belief(j), 0) && m_.isViolation(j)) {
+           if(checkDifferentSmall(predict_belief(j), 0.0) && m_.isViolation(j)) {
                g[0] += predict_belief(j);
                predict_belief(j) = 0;
            }
@@ -460,37 +460,116 @@ namespace MPC_POMDP {
       // here is where we would store the solution to variables, or write to a file, etc
       // so we could use the solution.
 
-      // For this example, we write the solution to the console
-      std::cout << std::endl << std::endl << "Solution of the primal variables, x" << std::endl;
+      std::ofstream ofs;
+      ofs.open("results.ipopt", std::ofstream::out);
       for( Index i = 0; i < n; i++ )
       {
-         std::cout << "x[" << i << "] = " << x[i] << std::endl;
+         ofs << x[i] << std::endl;
       }
+      
+      // Number temp[4];
+      // eval_g(n, x, m, temp);
+      // std::cout << std::endl << "Final value of the constraints:" << std::endl;
+      // for( Index i = 0; i < m; i++ )
+      // {
+      //    std::cout << "g(" << i << ") = " << (double) temp[i] << std::endl;
+      // }
 
-      for( Index i = 0; i < n; i++ )
-      {
-         std::cout << x[i] << " ";
-      }
-      std::cout << std::endl;
+      // std::cout << "Belief: " << std::endl;
+      // for(size_t i = 0; i < m_.getS(); i ++) {
+      //     if(checkDifferentSmall(b_(i), 0.0))
+      //         std::cout << "S: " << i << " B: " << b_(i) << std::endl;
+      // }
 
-      std::cout << std::endl << std::endl << "Solution of the bound multipliers, z_L and z_U" << std::endl;
-      for( Index i = 0; i < n; i++ )
-      {
-         std::cout << "z_L[" << i << "] = " << z_L[i] << std::endl;
-      }
-      for( Index i = 0; i < n; i++ )
-      {
-         std::cout << "z_U[" << i << "] = " << z_U[i] << std::endl;
-      }
+      // // For this example, we write the solution to the console
+      // std::cout << std::endl << std::endl << "Solution of the primal variables, x" << std::endl;
+      // for( Index i = 0; i < n; i++ )
+      // {
+      //    std::cout << "x[" << i << "] = " << x[i] << std::endl;
+      // }
 
-      std::cout << std::endl << std::endl << "Objective value" << std::endl;
-      std::cout << "f(x*) = " << obj_value << std::endl;
+      // for( Index i = 0; i < n; i++ )
+      // {
+      //    std::cout << x[i] << " ";
+      // }
+      // std::cout << std::endl;
 
-      std::cout << std::endl << "Final value of the constraints:" << std::endl;
-      for( Index i = 0; i < m; i++ )
-      {
-         std::cout << "g(" << i << ") = " << g[i] << std::endl;
-      }
+      // std::cout << std::endl << std::endl << "Solution of the bound multipliers, z_L and z_U" << std::endl;
+      // for( Index i = 0; i < n; i++ )
+      // {
+      //    std::cout << "z_L[" << i << "] = " << z_L[i] << std::endl;
+      // }
+      // for( Index i = 0; i < n; i++ )
+      // {
+      //    std::cout << "z_U[" << i << "] = " << z_U[i] << std::endl;
+      // }
+
+      // std::cout << std::endl << std::endl << "Objective value" << std::endl;
+      // std::cout << "f(x*) = " << obj_value << std::endl;
+
+      // std::cout << std::endl << "Final value of the constraints:" << std::endl;
+      // for( Index i = 0; i < m; i++ )
+      // {
+      //    std::cout << "g(" << i << ") = " << g[i] << std::endl;
+      // }
    }
    // [TNLP_finalize_solution]
+
+   // For debug purpose only
+   bool POMDP_NLP::eval_g(
+      Index         n,
+      const Number* x,
+      Index         m,
+      Number*       g
+   )
+   {
+      // std::cout << "Start evaluating g" << std::endl;
+
+      assert(n == horizon_*m_.getA());
+      assert(m == 1 + horizon_);
+
+      Belief predict_belief = b_;
+      g[0] = 0.0;
+      for (int i = 0; i < horizon_; ++i) {
+         Belief temp = predict_belief;
+         Vector temp_g(m_.getA());
+         for (size_t j = 0; j < m_.getA(); ++j) 
+             temp_g(j) = x[i*m_.getA()+j];
+
+         // Update belief 
+         //Update together
+         predict_belief.setZero();
+         for(size_t j = 0; j < m_.getA(); ++j) {
+           predict_belief.noalias() += Eigen::VectorXd(temp_g(j) * m_.getTransitionFunction(j).transpose() * temp);
+         }
+
+         std::cout << "Debug constraint calculation" << std::endl;
+         std::cout << predict_belief(6667) << std::endl;
+         std::cout << m_.isViolation(6667) << std::endl;
+         std::cout << std::endl;
+
+         for (size_t j = 0; j < m_.getS(); ++j) {
+           if(checkDifferentSmall(predict_belief(j), 0.0) && m_.isViolation(j)) {
+               g[0] += predict_belief(j);
+               std::cout << "values of g[0]" << g[0] << std::endl;
+               predict_belief(j) = 0;
+           }
+         }
+      }
+
+      std::cout << "values " << g[0] << std::endl;
+
+      for (int i = 1; i < m; ++i) {
+         g[i] = 0.0;
+         for (size_t j = 0; j < m_.getA(); ++j) {
+            g[i] += x[(i-1)*m_.getA() + j];
+         }
+      }
+
+      std::cout << "values " << g[0] << std::endl;
+
+      // std::cout << "Finish evaluating g" << std::endl;
+
+      return true;
+   }
 }

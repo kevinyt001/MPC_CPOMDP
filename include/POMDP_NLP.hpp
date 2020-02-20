@@ -4,6 +4,7 @@
 #include "IpTNLP.hpp"
 #include "SparseModel.hpp"
 #include "DefTypes.hpp"
+#include <fstream>
 
 using namespace Ipopt;
 
@@ -152,6 +153,14 @@ namespace MPC_POMDP {
 	       const POMDP_NLP&
 	    );
 	    //@}
+
+	    // For debug purpose only
+	   bool eval_g(
+	      Index         n,
+	      const Number* x,
+	      Index         m,
+	      Number*       g
+	   );
 	};
 
 }

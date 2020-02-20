@@ -9,6 +9,7 @@
 #include "Model.hpp"
 #include "SparseModel.hpp"
 #include "SolverIPOPT.hpp"
+#include "SolverNLOPT.hpp"
 #include "IpIpoptApplication.hpp"
 #include "POMDP_NLP.hpp"
 #include "IpTNLP.hpp"
@@ -30,14 +31,17 @@ int main() {
 
 	size_t init_state = 1360;
 	size_t init_state_2 = 136;
-	// MPC_POMDP::SparseBelief belief(overtake.getS());
-	MPC_POMDP::Belief belief(overtake.getS());
-	belief.setZero();
 
-	belief(init_state) = 0.5;
-	belief(init_state_2) = 0.5;
+	for (int i = 0; i < 300; i++) {
+		// MPC_POMDP::SparseBelief belief(overtake.getS());
+		MPC_POMDP::Belief belief(overtake.getS());
+		belief.setZero();
 
-	solver(overtake, init_state, belief);
+		belief(init_state) = 0.5;
+		belief(init_state_2) = 0.5;
+
+		solver(overtake, init_state, belief);
+	}
 
 	return 0;
 }

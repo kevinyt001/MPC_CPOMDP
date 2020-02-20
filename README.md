@@ -15,6 +15,7 @@ To compile the MPC-POMDP in C++, you need:
 - the [boost library](http://www.boost.org/) >= 1.54
 - the [Eigen 3.3 library](http://eigen.tuxfamily.org/index.php?title=Main_Page).
 - the [NLOPT Library](https://nlopt.readthedocs.io/)
+- the [IPOPT Library](https://coin-or.github.io/Ipopt/)
 
 ###### Compiling
 

@@ -104,8 +104,9 @@ namespace MPC_POMDP {
         A = model.getA();
         O = model.getO();
 
-        std::ofstream ofs;
+        std::ofstream ofs, ofs_time;
         ofs.open("results.POMDP", std::ofstream::out | std::ofstream::trunc);
+        ofs_time.open("opt_time_res.POMDP", std::ofstream::out | std::ofstream::app);
 
         int timestep = 0;
 
@@ -138,8 +139,6 @@ namespace MPC_POMDP {
             std::vector<double> gamma(A*horizon_, 1.0/(double)A);
             double cost_temp = 0;
 
-            clock_t t = clock();
-
             // Initialize the IpoptApplication and process the options
             ApplicationReturnStatus status;
             status = app->Initialize();
@@ -149,11 +148,20 @@ namespace MPC_POMDP {
                 std::cout << (int) status << std::endl;
             }
 
+            clock_t t = clock();
             // Ask Ipopt to solve the problem
             status = app->OptimizeTNLP(mynlp);
 
             if( status == Solve_Succeeded )
             {
+                cost_temp = app->Statistics()->FinalObjective();
+                std::ifstream file("results.ipopt");
+                std::string line;
+                int count_temp = 0;
+                while (std::getline(file, line)) {
+                    gamma[count_temp] = std::stod(line);
+                    count_temp++;
+                }
                 std::cout << std::endl << std::endl << "*** The problem solved!" << std::endl;
             }
             else
@@ -171,7 +179,7 @@ namespace MPC_POMDP {
 
             std::cout << "Step: " << timestep << std::endl;
             std::cout << "Computational time for this step is : " << (double) t/CLOCKS_PER_SEC << std::endl;
-
+            ofs_time<< (double) t/CLOCKS_PER_SEC << std::endl;
             // assert(false);
 
             // std::cout << "Cost: " << cost_temp << std::endl;
@@ -208,6 +216,7 @@ namespace MPC_POMDP {
         }
 
         ofs.close();
+        ofs_time.close();
         return;
     }
 

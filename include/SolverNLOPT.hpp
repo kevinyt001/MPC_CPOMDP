@@ -134,8 +134,9 @@ namespace MPC_POMDP {
         A = model.getA();
         O = model.getO();
 
-        std::ofstream ofs;
+        std::ofstream ofs, ofs_time;
         ofs.open("results.POMDP", std::ofstream::out | std::ofstream::trunc);
+        ofs_time.open("opt_time_res.POMDP", std::ofstream::out | std::ofstream::app);
 
         int timestep = 0;
 
@@ -192,6 +193,7 @@ namespace MPC_POMDP {
 
             std::cout << "Step: " << timestep << std::endl;
             std::cout << "Computational time for this step is : " << (double) t/CLOCKS_PER_SEC << std::endl;
+            ofs_time<< (double) t/CLOCKS_PER_SEC << std::endl;
 
             // std::cout << "Cost: " << cost_temp << std::endl;
             ofs << "Step: " << timestep << std::endl;
