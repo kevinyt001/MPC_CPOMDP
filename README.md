@@ -1,5 +1,7 @@
 # Stochastic Predictive Control Partially Observable Markov Decision Process
 
+MPC C-POMDP (Model Predictive Control for Constrained Partially Observable Markov Decision Processes)
+
 Stochastic control with POMDP methods
 
 This project aims to implement a solver of stochastic control for POMDP methods with easy-to-use interface while keeping codes readable. This project implements a solver for the framework developed by N. Li in University of Michigan, which you can find [here](https://asmedigitalcollection.asme.org/dynamicsystems/article/726497/Stochastic-Predictive-Control-for-Partially). The codes are generated taking inspiration from `AI-Toolbox` written by E. Bargiacchi, which you can find [here](https://github.com/Svalorzen/AI-Toolbox), and from the `pomdp-solve` software written by A. R. Cassandra, which you can find [here](http://www.pomdp.org/code/index.shtml). 
